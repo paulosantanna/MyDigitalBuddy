@@ -94,6 +94,8 @@ impl PetDefinition {
         let data = match id {
             "bryan" => include_str!("../pets/bryan.json"),
             "jorge" => include_str!("../pets/jorge.json"),
+            "bia" => include_str!("../pets/bia.json"),
+            "sophia" => include_str!("../pets/sophia.json"),
             _ => return None,
         };
         serde_json::from_str(data).ok()

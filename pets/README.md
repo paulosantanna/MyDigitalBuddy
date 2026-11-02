@@ -2,7 +2,7 @@
 
 Uma definição `pets/<id>.json` contém nome, seed, temperamento, pesos de brincadeira, reação ao notebook e aparência opcional. O ID aceita letras, números, hífen e sublinhado, sem caminhos. Sementes e memória são separadas por personagem.
 
-Bryan e Jorge estão embutidos no binário. Definições ao lado do executável ou em `--content-dir` podem substituí-las; a validação exige ganhos e pesos finitos entre 0 e 10. Para um novo personagem, copie uma definição com outro ID, nome e seed.
+Bryan, Jorge, Bia e Sophia estão embutidos no binário. Bia usa vermelho-púrpura; Sophia usa roxo. Definições ao lado do executável ou em `--content-dir` podem substituí-las; a validação exige ganhos e pesos finitos entre 0 e 10. Para um novo personagem, copie uma definição com outro ID, nome e seed.
 
 Conteúdo opcional:
 

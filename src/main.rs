@@ -12,13 +12,13 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "--help" || a == "-h") {
         println!(
-            "MyDigitalBuddy 0.1.0\n\nDesktop companion powered by a local 470-neuron LIF network.\n\n  --headless [SECONDS]   Simulate without a display\n  --seed N               Reproducible simulation seed\n  --data-dir PATH        Local memory directory\n  --content-dir PATH     Custom pet definitions and local images\n  --pet ID               Pet definition (bryan / jorge / custom)\n  --test-mode            Accelerated behavior\n  --direto               Skip onboarding, use saved permissions\n  --import-legacy PATH   Import a Pestinha memory directory without modifying it\n  --license              Show license and attribution\n"
+            "MyDigitalBuddy 0.1.0\n\nDesktop companion powered by a local 470-neuron LIF network.\n\n  --headless [SECONDS]   Simulate without a display\n  --seed N               Reproducible simulation seed\n  --data-dir PATH        Local memory directory\n  --content-dir PATH     Custom pet definitions and local images\n  --pet ID               Pet definition (bryan / jorge / bia / sophia / custom)\n  --test-mode            Accelerated behavior\n  --direto               Skip onboarding, use saved permissions\n  --import-legacy PATH   Import a Pestinha memory directory without modifying it\n  --license              Show the license\n"
         );
         return Ok(());
     }
     if args.iter().any(|a| a == "--license") {
         println!(
-            "MyDigitalBuddy — Rust adaptation by Paulo R Sant'Anna\nDerived from Pestinha, mille-okws and contributors.\nGPL-3.0-or-later, WITHOUT ANY WARRANTY.\nhttps://github.com/mille-okws/pestinha\n\n{}",
+            "GPL-3.0-or-later, WITHOUT ANY WARRANTY.\n\n{}",
             include_str!("../LICENSE")
         );
         return Ok(());

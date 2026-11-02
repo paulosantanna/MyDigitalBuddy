@@ -1,0 +1,30 @@
+{
+  "nome": "Bia",
+  "seed": 4099,
+  "temperamento": {
+    "PLAYFUL": 1.5,
+    "CURIOUS": 1.2,
+    "POKE->PLAYFUL": 1.6,
+    "CARESS->PLAYFUL": 1.4,
+    "CARESS->CALM": 0.8,
+    "DISMISS->FRUSTRATION": 1.5,
+    "DRAG->FRUSTRATION": 0.8,
+    "TOY_NEAR->PLAYFUL": 1.5,
+    "TOY_TAKEN->FRUSTRATION": 1.4,
+    "THROW->PLAYFUL": 1.4,
+    "IMPACT->FRUSTRATION": 1.1
+  },
+  "brincadeira": {
+    "bola": 1.3,
+    "arremesso": 1.2,
+    "postit": 0.5
+  },
+  "reacao_notebook": "bravo",
+  "aparencia": {
+    "moldura": "#b4236e",
+    "casca": "#241018",
+    "tela": "#14080e",
+    "olho": "#ff4d9a",
+    "brilho": "#ffd0e6"
+  }
+}

@@ -83,6 +83,34 @@ fn only_one_process_may_write_a_data_directory() {
     assert!(Engine::load(d.0.clone(), 3).is_ok());
 }
 #[test]
+fn bia_and_sophia_are_builtin_characters() {
+    let d = Temp::new();
+    let mut e = Engine::load(d.0.clone(), 1).unwrap();
+    let pets = e.available_pets();
+    assert!(pets.contains(&"bia".to_string()));
+    assert!(pets.contains(&"sophia".to_string()));
+    e.switch_pet("bia").unwrap();
+    assert_eq!(e.pet.name, "Bia");
+    assert_eq!(
+        e.pet.appearance.get("olho").and_then(|v| v.as_str()),
+        Some("#ff4d9a")
+    );
+    assert_eq!(
+        e.pet.appearance.get("moldura").and_then(|v| v.as_str()),
+        Some("#b4236e")
+    );
+    e.switch_pet("sophia").unwrap();
+    assert_eq!(e.pet.name, "Sophia");
+    assert_eq!(
+        e.pet.appearance.get("olho").and_then(|v| v.as_str()),
+        Some("#c084fc")
+    );
+    assert_eq!(
+        e.pet.appearance.get("moldura").and_then(|v| v.as_str()),
+        Some("#7c3aed")
+    );
+}
+#[test]
 fn pet_memories_are_isolated_and_survive_switches() {
     let d = Temp::new();
     let mut e = Engine::load(d.0.clone(), 1).unwrap();

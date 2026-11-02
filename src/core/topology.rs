@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Ported from mille-okws/pestinha @ 5063be916e68ebeaaf3723d49b387cfe2c362549 (core/nervous_system.py).
 pub const SENSORS: &[(&str, usize, f64, f64, f64)] = &[
     ("MOTION", 6, 120.0, 0.0004, 600.0),
     ("TYPING", 6, 60.0, 7e-05, 1200.0),

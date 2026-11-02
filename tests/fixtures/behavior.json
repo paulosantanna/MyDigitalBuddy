@@ -1,6 +1,5 @@
 {
   "metadata": {
-    "upstream": "https://github.com/mille-okws/pestinha",
     "commit": "5063be916e68ebeaaf3723d49b387cfe2c362549",
     "method": "Executed original Python modules, with explicit times and deterministic inputs.",
     "license": "GPL-3.0-or-later"

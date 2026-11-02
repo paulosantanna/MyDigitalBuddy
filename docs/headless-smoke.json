@@ -1,0 +1,38 @@
+{
+  "result": "passed",
+  "seconds_simulated": 60,
+  "seed": 42,
+  "fresh_directory_runs_match": true,
+  "summary": {
+    "project": "MyDigitalBuddy",
+    "pet": "Bryan",
+    "neurons": 470,
+    "synapses": 15892,
+    "simulated_seconds": 59.999999999997875,
+    "emotion": "Watching",
+    "energy": 0.9940773169438293,
+    "stimulation": 0.3501388888888897,
+    "contact": 0.02498611111111087,
+    "protest_stage": 0,
+    "sad_stage": 0,
+    "episodes": 0,
+    "motor_hz": {
+      "ACEITAR": 0.0,
+      "ANGRY": 1.8523773576011812e-25,
+      "CANTO": 0.001036239014705773,
+      "CARTAZ": 3.612595142352165e-49,
+      "CHEER": 0.0,
+      "DROWSE": 0.0,
+      "FUGIR": 1.3524852043925926e-48,
+      "PAPEL": 7.832223616506964e-48,
+      "SAD": 1.6865294901421854e-15,
+      "SENTAR": 0.0,
+      "SETTLE": 0.0,
+      "STARTLE": 0.0,
+      "TRAVESSURA": 0.0,
+      "WANDER": 0.0,
+      "WATCH": 0.0
+    },
+    "warnings": []
+  }
+}

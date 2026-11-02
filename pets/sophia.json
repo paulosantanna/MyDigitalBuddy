@@ -1,0 +1,30 @@
+{
+  "nome": "Sophia",
+  "seed": 8209,
+  "temperamento": {
+    "CALM": 1.5,
+    "CURIOUS": 1.2,
+    "CARESS->CALM": 1.7,
+    "CARESS->PLAYFUL": 1.1,
+    "LONELY->GLOOM": 1.3,
+    "DISMISS->GLOOM": 1.2,
+    "DISMISS->FRUSTRATION": 0.6,
+    "BOREDOM->CURIOUS": 1.3,
+    "NOVELTY->CURIOUS": 1.4,
+    "WORK->CALM": 1.3,
+    "TOY_TAKEN->GLOOM": 1.2
+  },
+  "brincadeira": {
+    "bola": 0.7,
+    "arremesso": 0.5,
+    "postit": 1.3
+  },
+  "reacao_notebook": "triste",
+  "aparencia": {
+    "moldura": "#7c3aed",
+    "casca": "#161022",
+    "tela": "#0c0816",
+    "olho": "#c084fc",
+    "brilho": "#f3e8ff"
+  }
+}

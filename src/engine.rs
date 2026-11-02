@@ -405,7 +405,12 @@ impl Engine {
         Ok(())
     }
     pub fn available_pets(&self) -> Vec<String> {
-        let mut ids = vec!["bryan".into(), "jorge".into()];
+        let mut ids = vec![
+            "bryan".into(),
+            "jorge".into(),
+            "bia".into(),
+            "sophia".into(),
+        ];
         if let Ok(entries) = fs::read_dir(self.content_root.join("pets")) {
             for e in entries.flatten() {
                 if e.path().extension().is_some_and(|s| s == "json")
@@ -419,6 +424,11 @@ impl Engine {
         ids.sort();
         ids.dedup();
         ids
+    }
+    pub fn pet_name(&self, id: &str) -> String {
+        definition(&self.content_root, id)
+            .map(|pet| pet.name)
+            .unwrap_or_else(|_| id.to_string())
     }
     pub fn save(&mut self) -> io::Result<()> {
         let now = storage::wall_time();
@@ -1482,6 +1492,16 @@ impl Engine {
             vec![
                 "Minha mentoria: beba água e faça uma pausa.",
                 "Retorno garantido: mais um carinho.",
+            ]
+        } else if self.settings.pet == "bia" {
+            vec![
+                "Energia alta. Um carinho acalma.",
+                "Essa tela está pedindo uma pausa.",
+            ]
+        } else if self.settings.pet == "sophia" {
+            vec![
+                "Estou por aqui, no seu ritmo.",
+                "Um carinho vale mais que pressa.",
             ]
         } else {
             vec![

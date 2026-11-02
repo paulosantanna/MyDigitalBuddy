@@ -1,0 +1,11 @@
+/target/
+/dist/
+/memory/
+/memory-*/
+/memoria-*/
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+.reversa
+_reversa_sdd

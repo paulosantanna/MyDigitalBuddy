@@ -193,12 +193,7 @@ impl Desktop {
                         .small()
                         .color(Color32::GRAY),
                 );
-                ui.horizontal(|ui| {
-                    ui.hyperlink_to(
-                        "Origem e créditos",
-                        "https://github.com/mille-okws/pestinha",
-                    );
-                    ui.label("·");
+                ui.horizontal_wrapped(|ui| {
                     ui.hyperlink_to("GPL v3+", "https://www.gnu.org/licenses/gpl-3.0.html");
                     ui.label("· v0.1.0");
                 });
@@ -235,7 +230,8 @@ impl Desktop {
                 .selected_text(&self.engine.pet.name)
                 .show_ui(ui, |ui| {
                     for id in self.engine.available_pets() {
-                        ui.selectable_value(&mut chosen, id.clone(), id);
+                        let label = self.engine.pet_name(&id);
+                        ui.selectable_value(&mut chosen, id, label);
                     }
                 });
         });
