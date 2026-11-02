@@ -12,7 +12,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "--help" || a == "-h") {
         println!(
-            "MyDigitalBuddy 0.1.0\n\nDesktop companion powered by a local 470-neuron LIF network.\n\n  --headless [SECONDS]   Simulate without a display\n  --seed N               Reproducible simulation seed\n  --data-dir PATH        Local memory directory\n  --content-dir PATH     Custom pet definitions and local images\n  --pet ID               Pet definition (bryan / jorge / bia / sophia / custom)\n  --test-mode            Accelerated behavior\n  --direto               Skip onboarding, use saved permissions\n  --import-legacy PATH   Import a Pestinha memory directory without modifying it\n  --license              Show the license\n"
+            "MyDigitalBuddy 0.1.0\n\nDesktop companion powered by a local 470-neuron LIF network.\n\n  --headless [SECONDS]   Simulate without a display\n  --seed N               Reproducible simulation seed\n  --data-dir PATH        Local memory directory\n  --content-dir PATH     Custom pet definitions and local images\n  --pet ID               Pet definition (bryan / jorge / bia / sophia / custom)\n  --test-mode            Accelerated behavior\n  --direto               Skip onboarding and start in the tray\n  --tray                 Start in the tray; the buddy stays on the desktop\n  --import-legacy PATH   Import a Pestinha memory directory without modifying it\n  --license              Show the license\n"
         );
         return Ok(());
     }
@@ -38,7 +38,22 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             (mydigitalbuddy::storage::wall_time() * 1_000_000.0) as u64 ^ std::process::id() as u64
         });
     let content = value("--content-dir").map(std::path::PathBuf::from);
-    let mut engine = mydigitalbuddy::engine::Engine::load_with_content(data_dir, seed, content)?;
+    let headless = args.iter().any(|a| a == "--headless");
+    let importing = value("--import-legacy").is_some();
+    let mut engine =
+        match mydigitalbuddy::engine::Engine::load_with_content(data_dir.clone(), seed, content) {
+            Ok(engine) => engine,
+            Err(error)
+                if !headless && !importing && mydigitalbuddy::storage::directory_in_use(&error) =>
+            {
+                if mydigitalbuddy::platform::request_running_instance(&data_dir) {
+                    return Ok(());
+                }
+                mydigitalbuddy::platform::notify_running_instance_unresponsive();
+                return Err(error.into());
+            }
+            Err(error) => return Err(error.into()),
+        };
     if let Some(pet) = value("--pet") {
         if value("--import-legacy").is_some() {
             engine.select_pet_for_import(pet)?;
@@ -73,7 +88,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     #[cfg(feature = "desktop")]
     {
-        mydigitalbuddy::desktop::run(engine, args.iter().any(|a| a == "--direto"))?;
+        let direct = args.iter().any(|a| a == "--direto");
+        let start_in_tray = direct || args.iter().any(|a| a == "--tray");
+        mydigitalbuddy::desktop::run(engine, direct, start_in_tray)?;
     }
     #[cfg(not(feature = "desktop"))]
     {

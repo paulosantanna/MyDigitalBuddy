@@ -15,4 +15,24 @@ if (-not (Get-Command link.exe -ErrorAction SilentlyContinue)) {
     $env:RUSTUP_TOOLCHAIN = $gnu
 }
 
-cargo run --release --locked -- @args
+$console = @("--headless", "--help", "-h", "--license", "--import-legacy")
+$stay = $false
+foreach ($arg in $args) {
+    if ($console -contains $arg) { $stay = $true }
+}
+if ($stay) {
+    cargo run --release --locked -- @args
+    exit $LASTEXITCODE
+}
+
+cargo build --release --locked
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+$built = Join-Path $PSScriptRoot "target\release\mydigitalbuddy.exe"
+$exe = Join-Path $PSScriptRoot "MyDigitalBuddy.exe"
+Copy-Item -LiteralPath $built -Destination $exe -Force
+if ($args.Count -gt 0) {
+    Start-Process -FilePath $exe -ArgumentList $args -WorkingDirectory $PSScriptRoot
+} else {
+    Start-Process -FilePath $exe -WorkingDirectory $PSScriptRoot
+}
+Write-Host "MyDigitalBuddy.exe está em execução. Esta janela pode ser fechada."

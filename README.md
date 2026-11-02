@@ -29,13 +29,15 @@ cd MyDigitalBuddy
 cargo run --release --locked
 ```
 
-No Windows, use o target **MSVC** com o componente de compilação C++ do Visual Studio Build Tools. Se `link.exe` não existir e o GCC do MinGW-w64 estiver no `PATH`, a raiz do repositório também compila e abre o programa pelo host Rust GNU:
+No Windows, abra `MyDigitalBuddy.exe` na pasta do projeto. É o programa: não abre console e não depende do `.bat`. O ícone do arquivo é o rosto da Sophia. Ele usa apenas bibliotecas do Windows, inclusive `OPENGL32.dll`.
+
+Para gerar esse arquivo de novo, use o target **MSVC** com o componente de compilação C++ do Visual Studio Build Tools. Se `link.exe` não existir e o GCC do MinGW-w64 estiver no `PATH`, `run.ps1` compila e copia o resultado para `MyDigitalBuddy.exe`:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run.ps1
 ```
 
-O executável fica em `target\release\mydigitalbuddy.exe` e usa apenas bibliotecas do Windows, inclusive `OPENGL32.dll`. No macOS, instale as Command Line Tools do Xcode. No Ubuntu/Debian:
+No macOS, instale as Command Line Tools do Xcode. No Ubuntu/Debian:
 
 ```bash
 sudo apt-get install build-essential pkg-config libx11-dev libxkbcommon-dev \
@@ -61,13 +63,16 @@ O binário fica em `target/release/mydigitalbuddy` ou `mydigitalbuddy.exe`. As d
 | Clicar em bilhete ou imagem | Dispensar objeto |
 | **Ctrl + Alt + Shift + B** | Desativar e persistir o pânico |
 
-Travessuras começam desligadas. Você pode minimizar a central; ela substitui o ícone de bandeja do legado e continua acessível na barra de tarefas. Depois do pânico, reative pela central. Se o sistema não disponibilizar o atalho global, o botão de pânico da central continua disponível.
+Travessuras começam desligadas. Minimizar ou fechar a central manda a janela para a bandeja; o companheiro continua no desktop. O ícone da bandeja abre a central de novo, e abrir o programa outra vez também traz a janela de volta. **Sair** encerra o programa. Em Permissões, **Iniciar com o Windows** (On/Off) sobe o companheiro já na bandeja no próximo login. Depois do pânico, reative pela central. Se o sistema não disponibilizar o atalho global, o botão de pânico da central continua disponível.
 
 ## Linha de comando
 
 ```bash
-# Usar permissões salvas sem a apresentação inicial
+# Usar permissões salvas e abrir já na bandeja
 cargo run --release --locked -- --direto
+
+# Só a bandeja; o companheiro continua no desktop
+cargo run --release --locked -- --tray
 
 # Outro personagem e tempos de desenvolvimento
 cargo run --release --locked -- --pet jorge --test-mode

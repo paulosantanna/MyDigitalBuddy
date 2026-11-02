@@ -135,6 +135,11 @@ impl Drop for InstanceLock {
     }
 }
 
+/// True when another live process already holds the data directory.
+pub fn directory_in_use(error: &io::Error) -> bool {
+    error.to_string().contains("data directory already in use")
+}
+
 pub fn log(root: &Path, message: &str) {
     let path = root.join("logs/mydigitalbuddy.log");
     if let Some(p) = path.parent() {
@@ -145,5 +150,18 @@ pub fn log(root: &Path, message: &str) {
     }
     if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(path) {
         let _ = writeln!(f, "{:.3} {message}", wall_time());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn directory_in_use_matches_the_lock_error() {
+        let locked = io::Error::other("data directory already in use: busy");
+        let other = io::Error::other("permission denied");
+        assert!(directory_in_use(&locked));
+        assert!(!directory_in_use(&other));
     }
 }

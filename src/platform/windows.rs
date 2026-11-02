@@ -36,6 +36,7 @@ unsafe extern "system" {
     fn IsZoomed(window: Hwnd) -> i32;
     fn EnumWindows(callback: unsafe extern "system" fn(Hwnd, isize) -> i32, param: isize) -> i32;
     fn GetWindowRect(window: Hwnd, rect: *mut WinRect) -> i32;
+    fn GetClassNameW(window: Hwnd, name: *mut u16, max: i32) -> i32;
     fn SystemParametersInfoW(action: u32, param: u32, value: *mut c_void, flags: u32) -> i32;
     fn GetSystemMetrics(index: i32) -> i32;
 }
@@ -142,10 +143,21 @@ pub fn sample() -> Snapshot {
             out.work_area = Some(rect(work));
         }
         let mut front = WinRect::default();
-        if !window.is_null() && GetWindowRect(window, &mut front) != 0 {
+        if !window.is_null() && pid != std::process::id() && GetWindowRect(window, &mut front) != 0
+        {
+            let mut class_buf = [0_u16; 256];
+            let class_len = GetClassNameW(window, class_buf.as_mut_ptr(), class_buf.len() as i32);
+            let class = if class_len > 0 {
+                String::from_utf16_lossy(&class_buf[..class_len as usize])
+            } else {
+                String::new()
+            };
             let sw = GetSystemMetrics(0);
             let sh = GetSystemMetrics(1);
-            out.fullscreen = front.left <= 0
+            // Progman/WorkerW cover the monitor and are not maximized. Counting
+            // that as fullscreen hid the pet as soon as the user clicked the desktop.
+            out.fullscreen = !super::is_shell_class(&class)
+                && front.left <= 0
                 && front.top <= 0
                 && front.right >= sw
                 && front.bottom >= sh

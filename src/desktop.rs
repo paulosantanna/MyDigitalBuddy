@@ -23,12 +23,17 @@ use std::{
 };
 
 const ACCENT: Color32 = Color32::from_rgb(94, 234, 212);
-pub fn run(engine: Engine, direct: bool) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run(
+    engine: Engine,
+    direct: bool,
+    start_in_tray: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let options = eframe::NativeOptions {
         viewport: ViewportBuilder::default()
             .with_title("MyDigitalBuddy")
             .with_inner_size([550.0, 740.0])
-            .with_min_inner_size([470.0, 560.0]),
+            .with_min_inner_size([470.0, 560.0])
+            .with_icon(app_icon()),
         renderer: eframe::Renderer::Glow,
         ..Default::default()
     };
@@ -42,7 +47,7 @@ pub fn run(engine: Engine, direct: bool) -> Result<(), Box<dyn std::error::Error
                 style.visuals.selection.bg_fill = Color32::from_rgb(21, 94, 87);
                 style.visuals.hyperlink_color = ACCENT;
             });
-            Ok(Box::new(Desktop::new(engine, direct)))
+            Ok(Box::new(Desktop::new(engine, direct, start_in_tray)))
         }),
     )
     .map_err(|e| e.to_string().into())
@@ -95,7 +100,6 @@ struct Desktop {
     onboarding: bool,
     page: usize,
     initialized: bool,
-    direct: bool,
     show_monitor: bool,
     show_protest: bool,
     reset_confirm: bool,
@@ -105,12 +109,36 @@ struct Desktop {
     menu_open: bool,
     rub: VecDeque<(f64, f64)>,
     textures: BTreeMap<PathBuf, egui::TextureHandle>,
+    tray: Option<platform::Tray>,
+    activation: Option<platform::Activation>,
+    quit: bool,
+    in_tray: bool,
+    restore_until: Option<Instant>,
+    start_in_tray: bool,
 }
 impl Desktop {
-    fn new(mut engine: Engine, direct: bool) -> Self {
+    fn new(mut engine: Engine, direct: bool, start_in_tray: bool) -> Self {
         let onboarding = !engine.settings.onboarding_done && !direct;
         if direct {
             engine.settings.onboarding_done = true;
+        }
+        let mut error = None;
+        #[cfg(target_os = "windows")]
+        let tray = match platform::Tray::install() {
+            Ok(tray) => Some(tray),
+            Err(message) => {
+                error = Some(message);
+                None
+            }
+        };
+        #[cfg(not(target_os = "windows"))]
+        let tray = None;
+        let activation = platform::Activation::listen(&engine.root);
+        if engine.settings.launch_at_startup
+            && platform::supports_launch_at_startup()
+            && let Err(message) = platform::set_launch_at_startup(true)
+        {
+            error = Some(message);
         }
         Self {
             engine,
@@ -122,21 +150,92 @@ impl Desktop {
             onboarding,
             page: 0,
             initialized: false,
-            direct,
             show_monitor: false,
             show_protest: false,
             reset_confirm: false,
-            error: None,
+            error,
             drag_last: None,
             drag_velocity: (0.0, 0.0),
             menu_open: false,
             rub: VecDeque::new(),
             textures: BTreeMap::new(),
+            tray,
+            activation,
+            quit: false,
+            in_tray: false,
+            restore_until: None,
+            start_in_tray,
         }
     }
     fn save(&mut self) {
         if let Err(e) = self.engine.save() {
             self.error = Some(format!("Não foi possível salvar: {e}"));
+        }
+    }
+    fn set_startup(&mut self, enabled: bool) {
+        match platform::set_launch_at_startup(enabled) {
+            Ok(()) => {
+                self.engine.settings.launch_at_startup = enabled;
+                self.save();
+            }
+            Err(message) => self.error = Some(message),
+        }
+    }
+    fn startup_switch(&mut self, ui: &mut egui::Ui) {
+        if !platform::supports_launch_at_startup() {
+            return;
+        }
+        ui.horizontal(|ui| {
+            ui.label("Iniciar com o Windows");
+            let on = self.engine.settings.launch_at_startup;
+            if ui.selectable_label(on, "On").clicked() && !on {
+                self.set_startup(true);
+            }
+            if ui.selectable_label(!on, "Off").clicked() && on {
+                self.set_startup(false);
+            }
+        });
+        ui.label(
+            egui::RichText::new(
+                "On abre o companheiro na bandeja quando o Windows entra, sem mostrar a central.",
+            )
+            .small()
+            .color(Color32::GRAY),
+        );
+    }
+    fn restore_central(&mut self, ctx: &egui::Context) {
+        self.in_tray = false;
+        self.start_in_tray = false;
+        self.restore_until = Some(Instant::now() + Duration::from_millis(600));
+        ctx.send_viewport_cmd_to(ViewportId::ROOT, ViewportCommand::Minimized(false));
+        ctx.send_viewport_cmd_to(ViewportId::ROOT, ViewportCommand::Visible(true));
+        ctx.send_viewport_cmd_to(ViewportId::ROOT, ViewportCommand::Focus);
+    }
+    fn hide_to_tray(&mut self, ctx: &egui::Context) {
+        if self.tray.is_none() {
+            return;
+        }
+        self.in_tray = true;
+        ctx.send_viewport_cmd(ViewportCommand::Minimized(false));
+        ctx.send_viewport_cmd(ViewportCommand::Visible(false));
+    }
+    fn poll_tray(&mut self, ctx: &egui::Context) {
+        let Some(tray) = self.tray.as_mut() else {
+            return;
+        };
+        tray.set_flags(self.engine.paused, self.engine.hidden);
+        let commands = tray.poll();
+        for command in commands {
+            match command {
+                platform::TrayCommand::Open => self.restore_central(ctx),
+                platform::TrayCommand::TogglePause => self.engine.paused = !self.engine.paused,
+                platform::TrayCommand::ToggleHidden => self.engine.hidden = !self.engine.hidden,
+                platform::TrayCommand::Panic => self.engine.panic(),
+                platform::TrayCommand::Quit => {
+                    self.quit = true;
+                    ctx.send_viewport_cmd(ViewportCommand::Close);
+                }
+            }
         }
     }
     fn controls(&mut self, ui: &mut egui::Ui) {
@@ -334,9 +433,13 @@ impl Desktop {
             );
         }
         ui.label(
-            egui::RichText::new("Você pode minimizar esta central; o pet continua no desktop.")
-                .small(),
+            egui::RichText::new(
+                "Minimizar ou fechar esta janela manda a central para a bandeja. O companheiro continua no desktop. Sair, no ícone da bandeja ou no menu do pet, encerra o programa.",
+            )
+            .small(),
         );
+        ui.add_space(6.0);
+        self.startup_switch(ui);
     }
     fn permissions(&mut self, ui: &mut egui::Ui) {
         ui.heading("Você escolhe o que ele faz");
@@ -399,6 +502,9 @@ impl Desktop {
         ui.label("Conteúdo local");
         ui.monospace(self.engine.content_root.display().to_string());
         ui.label("Os desenhos são feitos em Rust. Você pode adicionar imagens próprias nas pastas de conteúdo.");
+        ui.add_space(12.0);
+        ui.heading("Sistema");
+        self.startup_switch(ui);
     }
     fn neural(&mut self, ui: &mut egui::Ui) {
         ui.heading("Rede neural pulsada");
@@ -567,12 +673,14 @@ impl Desktop {
         );
     }
 
-    fn pet_viewport(&mut self, ctx: &egui::Context) {
+    fn pet_viewport(&mut self, ctx: &egui::Context, shown: bool) {
         let center = Pos2::new(110.0, 125.0);
         let x = self.engine.body.x as f32 - center.x;
         let y = self.engine.body.y as f32 - center.y;
-        let builder = overlay("MyDigitalBuddy · pet", [220.0, 250.0], [x, y], false);
+        let builder =
+            overlay("MyDigitalBuddy · pet", [220.0, 250.0], [x, y], !shown).with_visible(shown);
         ctx.show_viewport_immediate(ViewportId::from_hash_of("buddy"), builder, |ui, _| {
+            ui.ctx().request_repaint_after(Duration::from_millis(16));
             ui.ctx()
                 .send_viewport_cmd(ViewportCommand::OuterPosition(Pos2::new(
                     self.engine.body.x as f32 - center.x,
@@ -670,9 +778,6 @@ impl Desktop {
                 self.pet_menu(ui);
             });
             self.menu_open = response.context_menu_opened();
-            if ui.input(|i| i.viewport().close_requested()) {
-                self.engine.hidden = true;
-            }
         });
     }
     fn pet_menu(&mut self, ui: &mut egui::Ui) {
@@ -742,10 +847,7 @@ impl Desktop {
         ui.checkbox(&mut self.show_protest, "Painel de protesto");
         ui.separator();
         if ui.button("Abrir central").clicked() {
-            ui.ctx()
-                .send_viewport_cmd_to(ViewportId::ROOT, ViewportCommand::Minimized(false));
-            ui.ctx()
-                .send_viewport_cmd_to(ViewportId::ROOT, ViewportCommand::Focus);
+            self.restore_central(ui.ctx());
             ui.close();
         }
         if ui.button("Esconder").clicked() {
@@ -757,16 +859,17 @@ impl Desktop {
             ui.close();
         }
         if ui.button("Fechar aplicativo").clicked() {
+            self.quit = true;
             ui.ctx()
                 .send_viewport_cmd_to(ViewportId::ROOT, ViewportCommand::Close);
         }
     }
-    fn ball_viewport(&mut self, ctx: &egui::Context) {
+    fn ball_viewport(&mut self, ctx: &egui::Context, shown: bool) {
         let x = self.engine.ball.x as f32 - 30.0;
         let y = self.engine.ball.y as f32 - 30.0;
         ctx.show_viewport_immediate(
             ViewportId::from_hash_of("ball"),
-            overlay("MyDigitalBuddy · bolinha", [60.0, 60.0], [x, y], false),
+            overlay("MyDigitalBuddy · bolinha", [60.0, 60.0], [x, y], !shown).with_visible(shown),
             |ui, _| {
                 let center = Pos2::new(30.0, 30.0);
                 drawing::ball(ui.painter(), center, self.engine.ball.angle as f32);
@@ -802,7 +905,7 @@ impl Desktop {
             },
         );
     }
-    fn notebook_viewport(&mut self, ctx: &egui::Context) {
+    fn notebook_viewport(&mut self, ctx: &egui::Context, shown: bool) {
         let position = self.engine.desk.position;
         ctx.show_viewport_immediate(
             ViewportId::from_hash_of("notebook"),
@@ -810,8 +913,9 @@ impl Desktop {
                 "MyDigitalBuddy · notebook",
                 [160.0, 110.0],
                 [position.0 as f32, position.1 as f32],
-                false,
-            ),
+                !shown,
+            )
+            .with_visible(shown),
             |ui, _| {
                 drawing::notebook(
                     ui.painter(),
@@ -853,7 +957,7 @@ impl Desktop {
             },
         );
     }
-    fn corner_viewport(&mut self, ctx: &egui::Context) {
+    fn corner_viewport(&mut self, ctx: &egui::Context, shown: bool) {
         let pos = self.engine.corner.position;
         ctx.show_viewport_immediate(
             ViewportId::from_hash_of("corner"),
@@ -861,8 +965,9 @@ impl Desktop {
                 "MyDigitalBuddy · cantinho",
                 [190.0, 150.0],
                 [pos.0 as f32, pos.1 as f32],
-                false,
-            ),
+                !shown,
+            )
+            .with_visible(shown),
             |ui, _| {
                 drawing::corner(ui.painter(), self.engine.corner.inside);
                 let r = ui.interact(
@@ -1248,9 +1353,31 @@ impl eframe::App for Desktop {
             self.engine.corner.position.1 =
                 self.engine.corner.position.1.clamp(b.top, b.bottom - 150.0);
             self.initialized = true;
-            if self.direct {
-                ctx.send_viewport_cmd(ViewportCommand::Minimized(true));
+        }
+        self.poll_tray(ctx);
+        if self.activation.as_ref().is_some_and(|wake| wake.poll()) {
+            self.restore_central(ctx);
+        }
+        let close_requested = ctx.input(|i| i.viewport().close_requested());
+        let minimized = ctx.input(|i| i.viewport().minimized) == Some(true);
+        if self.restore_until.is_some() {
+            ctx.send_viewport_cmd(ViewportCommand::Minimized(false));
+            ctx.send_viewport_cmd(ViewportCommand::Visible(true));
+            ctx.send_viewport_cmd(ViewportCommand::Focus);
+            if self
+                .restore_until
+                .is_some_and(|until| Instant::now() >= until)
+            {
+                self.restore_until = None;
             }
+        } else if !self.quit && close_requested && self.tray.is_some() {
+            ctx.send_viewport_cmd(ViewportCommand::CancelClose);
+            self.hide_to_tray(ctx);
+        } else if !self.quit && minimized {
+            self.hide_to_tray(ctx);
+        } else if !self.quit && self.start_in_tray && self.initialized && !self.onboarding {
+            self.start_in_tray = false;
+            self.hide_to_tray(ctx);
         }
         let now = Instant::now();
         let dt = (now - self.last).as_secs_f64();
@@ -1280,20 +1407,25 @@ impl eframe::App for Desktop {
             egui::Modal::new(egui::Id::unique("reset-confirm")).show(&ctx,|ui| {ui.heading("Redefinir memória?");ui.label(format!("Isso apaga o aprendizado de {} e o histórico de rotina. Os demais personagens permanecem.",self.engine.pet.name));ui.horizontal(|ui| {if ui.button("Cancelar").clicked() {self.reset_confirm=false;}
 if ui.button("Redefinir").clicked() {if let Err(e)=self.engine.wipe_memory() {self.error=Some(e.to_string());}self.reset_confirm=false;}});});
         }
-        if !self.onboarding && self.engine.visible(&self.input) {
-            self.pet_viewport(&ctx);
+        if !self.onboarding && self.engine.settings.active {
+            // Keep the GL windows alive when the desktop is clicked or a game
+            // covers the screen. Destroying them here used to end the process.
+            let shown = self.engine.visible(&self.input);
+            self.pet_viewport(&ctx, shown);
             if self.engine.settings.ball && !self.engine.ball_stored {
-                self.ball_viewport(&ctx);
+                self.ball_viewport(&ctx, shown);
             }
             if self.engine.desk.visible {
-                self.notebook_viewport(&ctx);
+                self.notebook_viewport(&ctx, shown);
             }
             if self.engine.corner.enabled {
-                self.corner_viewport(&ctx);
+                self.corner_viewport(&ctx, shown);
             }
-            self.sign_viewport(&ctx);
-            self.thing_viewports(&ctx);
-            self.fireworks_viewport(&ctx);
+            if shown {
+                self.sign_viewport(&ctx);
+                self.thing_viewports(&ctx);
+                self.fireworks_viewport(&ctx);
+            }
         }
         self.floating_panels(&ctx);
     }
@@ -1310,6 +1442,14 @@ if ui.button("Redefinir").clicked() {if let Err(e)=self.engine.wipe_memory() {se
         }
         self.save();
     }
+}
+
+fn app_icon() -> Arc<egui::IconData> {
+    Arc::new(egui::IconData {
+        rgba: crate::sophia_icon::rgba().to_vec(),
+        width: crate::sophia_icon::SIDE as u32,
+        height: crate::sophia_icon::SIDE as u32,
+    })
 }
 
 fn overlay(title: &str, size: [f32; 2], position: [f32; 2], passthrough: bool) -> ViewportBuilder {

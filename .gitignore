@@ -1,5 +1,6 @@
 /target/
 /dist/
+/MyDigitalBuddy.exe
 /memory/
 /memory-*/
 /memoria-*/
@@ -9,3 +10,6 @@
 Thumbs.db
 .reversa
 _reversa_sdd
+.cursor/
+.claude/
+.idea/

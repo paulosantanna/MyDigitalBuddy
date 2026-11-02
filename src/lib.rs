@@ -4,6 +4,7 @@ pub mod core;
 pub mod engine;
 pub mod platform;
 pub mod senses;
+mod sophia_icon;
 pub mod storage;
 pub mod timeline;
 

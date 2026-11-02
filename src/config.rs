@@ -36,6 +36,7 @@ pub struct Settings {
     #[serde(alias = "fogos")]
     pub fireworks: bool,
     pub onboarding_done: bool,
+    pub launch_at_startup: bool,
 }
 
 impl Default for Settings {
@@ -58,6 +59,7 @@ impl Default for Settings {
             ball: true,
             fireworks: true,
             onboarding_done: false,
+            launch_at_startup: false,
         }
     }
 }

@@ -44,6 +44,6 @@ Essa sessão não mede DPI, múltiplos monitores, transparência final, atalho g
 
 macOS **não foi executado nativamente neste host**. No Windows, a sessão acima confirma link e abertura das janelas; não cobre foco, permissões do sistema, atalho, escala/DPI ou todos os gestos. `cargo check` continua sem substituir essa execução. O workflow repete build e testes em runners nativos quando o repositório estiver publicado; os resultados remotos só podem ser declarados depois da execução.
 
-Não há comprovação de paridade global ou pixel a pixel com todos os caminhos do legado. A central substitui o tray e há diferenças de RNG e de mídia descritas em `MIGRATION.md`. Recomenda-se aceite de gestos, fullscreen, múltiplos monitores, hotkey e importação com uma cópia dos dados no sistema de destino.
+Não há comprovação de paridade global ou pixel a pixel com todos os caminhos do legado. A central pode ir para a bandeja e há diferenças de RNG e de mídia descritas em `MIGRATION.md`. Recomenda-se aceite de gestos, fullscreen, múltiplos monitores, hotkey e importação com uma cópia dos dados no sistema de destino.
 
 Uma tentativa inicial de destruir diretamente a janela com uma ferramenta de teste provocou `BadDrawable` dentro do winit. O teste de encerramento foi corrigido para o fluxo normal do gerenciador de janelas (Alt+F4), que passou; destruição externa forçada de uma janela não foi corrigida no backend de terceiros.
