@@ -1,0 +1,33 @@
+{
+  "nome": "Jorge",
+  "seed": 1729,
+  "temperamento": {
+    "BOREDOM->CURIOUS": 1.5,
+    "BOREDOM->PLAYFUL": 1.4,
+    "LONELY->GLOOM": 0.6,
+    "POKE->PLAYFUL": 1.6,
+    "CARESS->PLAYFUL": 1.7,
+    "CARESS->CALM": 1.2,
+    "DISMISS->FRUSTRATION": 1.6,
+    "RECUSA->FRUSTRATION": 1.3,
+    "TOY_TAKEN->GLOOM": 0.5,
+    "TOY_TAKEN->FRUSTRATION": 1.3,
+    "NOVELTY->CURIOUS": 1.3
+  },
+  "brincadeira": {
+    "bola": 0.6,
+    "arremesso": 0.8,
+    "postit": 1.4
+  },
+  "reacao_notebook": "bravo",
+  "aparencia": {
+    "moldura": "#e2b13c",
+    "casca": "#14120c",
+    "tela": "#1c1a12",
+    "olho": "#ffd166",
+    "brilho": "#fff3c4",
+    "acessorios": {
+      "gravata": "#b3261e"
+    }
+  }
+}

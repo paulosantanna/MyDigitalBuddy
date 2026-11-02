@@ -1,0 +1,2473 @@
+{
+  "metadata": {
+    "upstream": "https://github.com/mille-okws/pestinha",
+    "commit": "5063be916e68ebeaaf3723d49b387cfe2c362549",
+    "method": "Executed original Python modules, with explicit times and deterministic inputs.",
+    "license": "GPL-3.0-or-later"
+  },
+  "classify": [
+    {
+      "v": -1,
+      "a": -0.8,
+      "expected": "triste"
+    },
+    {
+      "v": -1,
+      "a": 0.15,
+      "expected": "triste"
+    },
+    {
+      "v": -1,
+      "a": 0.16,
+      "expected": "bravo"
+    },
+    {
+      "v": -1,
+      "a": 0.22,
+      "expected": "bravo"
+    },
+    {
+      "v": -1,
+      "a": 0.23,
+      "expected": "bravo"
+    },
+    {
+      "v": -1,
+      "a": 0.3,
+      "expected": "bravo"
+    },
+    {
+      "v": -1,
+      "a": 0.31,
+      "expected": "bravo"
+    },
+    {
+      "v": -1,
+      "a": 0.9,
+      "expected": "bravo"
+    },
+    {
+      "v": -0.21,
+      "a": -0.8,
+      "expected": "triste"
+    },
+    {
+      "v": -0.21,
+      "a": 0.15,
+      "expected": "triste"
+    },
+    {
+      "v": -0.21,
+      "a": 0.16,
+      "expected": "bravo"
+    },
+    {
+      "v": -0.21,
+      "a": 0.22,
+      "expected": "bravo"
+    },
+    {
+      "v": -0.21,
+      "a": 0.23,
+      "expected": "bravo"
+    },
+    {
+      "v": -0.21,
+      "a": 0.3,
+      "expected": "bravo"
+    },
+    {
+      "v": -0.21,
+      "a": 0.31,
+      "expected": "bravo"
+    },
+    {
+      "v": -0.21,
+      "a": 0.9,
+      "expected": "bravo"
+    },
+    {
+      "v": -0.2,
+      "a": -0.8,
+      "expected": "observando"
+    },
+    {
+      "v": -0.2,
+      "a": 0.15,
+      "expected": "observando"
+    },
+    {
+      "v": -0.2,
+      "a": 0.16,
+      "expected": "observando"
+    },
+    {
+      "v": -0.2,
+      "a": 0.22,
+      "expected": "observando"
+    },
+    {
+      "v": -0.2,
+      "a": 0.23,
+      "expected": "curioso"
+    },
+    {
+      "v": -0.2,
+      "a": 0.3,
+      "expected": "curioso"
+    },
+    {
+      "v": -0.2,
+      "a": 0.31,
+      "expected": "curioso"
+    },
+    {
+      "v": -0.2,
+      "a": 0.9,
+      "expected": "curioso"
+    },
+    {
+      "v": 0,
+      "a": -0.8,
+      "expected": "observando"
+    },
+    {
+      "v": 0,
+      "a": 0.15,
+      "expected": "observando"
+    },
+    {
+      "v": 0,
+      "a": 0.16,
+      "expected": "observando"
+    },
+    {
+      "v": 0,
+      "a": 0.22,
+      "expected": "observando"
+    },
+    {
+      "v": 0,
+      "a": 0.23,
+      "expected": "curioso"
+    },
+    {
+      "v": 0,
+      "a": 0.3,
+      "expected": "curioso"
+    },
+    {
+      "v": 0,
+      "a": 0.31,
+      "expected": "curioso"
+    },
+    {
+      "v": 0,
+      "a": 0.9,
+      "expected": "curioso"
+    },
+    {
+      "v": 0.18,
+      "a": -0.8,
+      "expected": "observando"
+    },
+    {
+      "v": 0.18,
+      "a": 0.15,
+      "expected": "observando"
+    },
+    {
+      "v": 0.18,
+      "a": 0.16,
+      "expected": "observando"
+    },
+    {
+      "v": 0.18,
+      "a": 0.22,
+      "expected": "observando"
+    },
+    {
+      "v": 0.18,
+      "a": 0.23,
+      "expected": "curioso"
+    },
+    {
+      "v": 0.18,
+      "a": 0.3,
+      "expected": "curioso"
+    },
+    {
+      "v": 0.18,
+      "a": 0.31,
+      "expected": "curioso"
+    },
+    {
+      "v": 0.18,
+      "a": 0.9,
+      "expected": "curioso"
+    },
+    {
+      "v": 0.19,
+      "a": -0.8,
+      "expected": "contente"
+    },
+    {
+      "v": 0.19,
+      "a": 0.15,
+      "expected": "contente"
+    },
+    {
+      "v": 0.19,
+      "a": 0.16,
+      "expected": "contente"
+    },
+    {
+      "v": 0.19,
+      "a": 0.22,
+      "expected": "contente"
+    },
+    {
+      "v": 0.19,
+      "a": 0.23,
+      "expected": "contente"
+    },
+    {
+      "v": 0.19,
+      "a": 0.3,
+      "expected": "contente"
+    },
+    {
+      "v": 0.19,
+      "a": 0.31,
+      "expected": "feliz"
+    },
+    {
+      "v": 0.19,
+      "a": 0.9,
+      "expected": "feliz"
+    },
+    {
+      "v": 0.9,
+      "a": -0.8,
+      "expected": "contente"
+    },
+    {
+      "v": 0.9,
+      "a": 0.15,
+      "expected": "contente"
+    },
+    {
+      "v": 0.9,
+      "a": 0.16,
+      "expected": "contente"
+    },
+    {
+      "v": 0.9,
+      "a": 0.22,
+      "expected": "contente"
+    },
+    {
+      "v": 0.9,
+      "a": 0.23,
+      "expected": "contente"
+    },
+    {
+      "v": 0.9,
+      "a": 0.3,
+      "expected": "contente"
+    },
+    {
+      "v": 0.9,
+      "a": 0.31,
+      "expected": "feliz"
+    },
+    {
+      "v": 0.9,
+      "a": 0.9,
+      "expected": "feliz"
+    }
+  ],
+  "drives": [
+    {
+      "test": false,
+      "initial": [
+        1,
+        0.6,
+        0
+      ],
+      "params": [
+        false,
+        0,
+        0,
+        false,
+        false,
+        false,
+        false
+      ],
+      "dt": 0.25,
+      "steps": 5,
+      "expected": [
+        0.9998842592592591,
+        0.5947916666666664,
+        0.0005208333333333333
+      ]
+    },
+    {
+      "test": false,
+      "initial": [
+        0.2,
+        0.1,
+        0.9
+      ],
+      "params": [
+        true,
+        0,
+        0,
+        false,
+        false,
+        false,
+        false
+      ],
+      "dt": 0.25,
+      "steps": 5,
+      "expected": [
+        0.2010416666666667,
+        0.09479166666666669,
+        0.9005208333333334
+      ]
+    },
+    {
+      "test": false,
+      "initial": [
+        0.5,
+        0.3,
+        0.4
+      ],
+      "params": [
+        false,
+        1,
+        0.8,
+        false,
+        false,
+        false,
+        false
+      ],
+      "dt": 0.25,
+      "steps": 5,
+      "expected": [
+        0.49961805555555555,
+        0.2947916666666667,
+        0.40052083333333344
+      ]
+    },
+    {
+      "test": false,
+      "initial": [
+        0.5,
+        0.2,
+        0.8
+      ],
+      "params": [
+        false,
+        0.4,
+        0.2,
+        false,
+        true,
+        true,
+        true
+      ],
+      "dt": 0.25,
+      "steps": 5,
+      "expected": [
+        0.4997916666666667,
+        0.2243827637939453,
+        0.8005208333333335
+      ]
+    },
+    {
+      "test": false,
+      "initial": [
+        0.5,
+        0.4,
+        0.5
+      ],
+      "params": [
+        false,
+        0,
+        0,
+        true,
+        false,
+        false,
+        false
+      ],
+      "dt": 0.25,
+      "steps": 5,
+      "expected": [
+        0.49988425925925933,
+        0.3947916666666667,
+        0.5001562500000002
+      ]
+    },
+    {
+      "test": false,
+      "initial": [
+        0.8,
+        0.8,
+        0.3
+      ],
+      "params": [
+        false,
+        0,
+        0,
+        false,
+        false,
+        true,
+        false
+      ],
+      "dt": 0.25,
+      "steps": 5,
+      "expected": [
+        0.7998842592592591,
+        0.7843749999999998,
+        0.30104166666666654
+      ]
+    },
+    {
+      "test": true,
+      "initial": [
+        1,
+        0.6,
+        0
+      ],
+      "params": [
+        false,
+        0,
+        0,
+        false,
+        false,
+        false,
+        false
+      ],
+      "dt": 0.25,
+      "steps": 5,
+      "expected": [
+        0.9958333333333332,
+        0.5687500000000001,
+        0.010416666666666666
+      ]
+    },
+    {
+      "test": true,
+      "initial": [
+        0.2,
+        0.1,
+        0.9
+      ],
+      "params": [
+        true,
+        0,
+        0,
+        false,
+        false,
+        false,
+        false
+      ],
+      "dt": 0.25,
+      "steps": 5,
+      "expected": [
+        0.2208333333333334,
+        0.06874999999999998,
+        0.9104166666666667
+      ]
+    },
+    {
+      "test": true,
+      "initial": [
+        0.5,
+        0.3,
+        0.4
+      ],
+      "params": [
+        false,
+        1,
+        0.8,
+        false,
+        false,
+        false,
+        false
+      ],
+      "dt": 0.25,
+      "steps": 5,
+      "expected": [
+        0.4862500000000001,
+        0.2687500000000001,
+        0.41041666666666665
+      ]
+    },
+    {
+      "test": true,
+      "initial": [
+        0.5,
+        0.2,
+        0.8
+      ],
+      "params": [
+        false,
+        0.4,
+        0.2,
+        false,
+        true,
+        true,
+        true
+      ],
+      "dt": 0.25,
+      "steps": 5,
+      "expected": [
+        0.4925,
+        0.2243827637939453,
+        0.8104166666666667
+      ]
+    },
+    {
+      "test": true,
+      "initial": [
+        0.5,
+        0.4,
+        0.5
+      ],
+      "params": [
+        false,
+        0,
+        0,
+        true,
+        false,
+        false,
+        false
+      ],
+      "dt": 0.25,
+      "steps": 5,
+      "expected": [
+        0.49583333333333324,
+        0.36875000000000013,
+        0.5031249999999999
+      ]
+    },
+    {
+      "test": true,
+      "initial": [
+        0.8,
+        0.8,
+        0.3
+      ],
+      "params": [
+        false,
+        0,
+        0,
+        false,
+        false,
+        true,
+        false
+      ],
+      "dt": 0.25,
+      "steps": 5,
+      "expected": [
+        0.7958333333333333,
+        0.7062499999999998,
+        0.32083333333333325
+      ]
+    }
+  ],
+  "physics": [
+    {
+      "initial": [
+        600,
+        100,
+        100,
+        0,
+        0,
+        0
+      ],
+      "platforms": [],
+      "dt": 0.016666666666666666,
+      "steps": 90,
+      "expected": [
+        734.1362903214699,
+        979.8005674501212,
+        79.82912927496697,
+        -219.44999999999976,
+        16.514885662916623,
+        53.483933411779695
+      ],
+      "grounded": false,
+      "platform": null
+    },
+    {
+      "initial": [
+        100,
+        200,
+        -1000,
+        100,
+        -35,
+        300
+      ],
+      "platforms": [],
+      "dt": 0.016666666666666666,
+      "steps": 12,
+      "expected": [
+        130.69936498581166,
+        267.6666666666667,
+        339.64317861558646,
+        540.0000000000001,
+        24.07388190549689,
+        278.102257914462
+      ],
+      "grounded": false,
+      "platform": null
+    },
+    {
+      "initial": [
+        1700,
+        100,
+        1000,
+        -600,
+        40,
+        -400
+      ],
+      "platforms": [],
+      "dt": 0.016666666666666666,
+      "steps": 40,
+      "expected": [
+        1683.3050125055197,
+        297.36323298110324,
+        -316.6534460561929,
+        973.1415345785152,
+        -169.17129849687547,
+        -240.7084623673982
+      ],
+      "grounded": false,
+      "platform": null
+    },
+    {
+      "initial": [
+        550,
+        100,
+        20,
+        250,
+        0,
+        0
+      ],
+      "platforms": [
+        [
+          42,
+          300,
+          1000,
+          400
+        ]
+      ],
+      "dt": 0.016666666666666666,
+      "steps": 60,
+      "expected": [
+        567.1731090658816,
+        352.8701776831703,
+        5.551750151328837,
+        0.0,
+        2.0621036971614184,
+        -14.336070798493948
+      ],
+      "grounded": true,
+      "platform": 42
+    },
+    {
+      "initial": [
+        900,
+        900,
+        -600,
+        250,
+        170,
+        50
+      ],
+      "platforms": [],
+      "dt": 0.016666666666666666,
+      "steps": 60,
+      "expected": [
+        667.0384250443042,
+        994.1451661323906,
+        -5.04379864370327,
+        0.0,
+        180.82074303339402,
+        -6.314591544454331
+      ],
+      "grounded": true,
+      "platform": null
+    }
+  ],
+  "emotion": [
+    {
+      "step": 0,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.006612895895668529,
+        0.0033064479478342643
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 1,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.013094847679318507,
+        0.006547423839659254
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 2,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.019448448218090574,
+        0.009724224109045287
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 3,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.025676239036916036,
+        0.012838119518458018
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 4,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.03178071133516075,
+        0.015890355667580375
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 5,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.037764306983138055,
+        0.018882153491569027
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 6,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.04362941949888948,
+        0.02181470974944474
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 7,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.049378395005623875,
+        0.024689197502811937
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 8,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.05501353317019796,
+        0.02750676658509898
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 9,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.06053708812301375,
+        0.030268544061506874
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 10,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.06595126935970073,
+        0.03297563467985037
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 11,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.07125824262494365,
+        0.035629121312471826
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 12,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.07646013077880917,
+        0.038230065389404586
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 13,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.08155901464591828,
+        0.04077950732295914
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 14,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.08655693384780384,
+        0.04327846692390192
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 15,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.09145588761878644,
+        0.04572794380939322
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 16,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.0962578356056947,
+        0.04812891780284735
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 17,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.10096469865175023,
+        0.050482349325875114
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 18,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.10557835956493045,
+        0.05278917978246522
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 19,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.11010066387111693,
+        0.055050331935558465
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 20,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.11453342055233035,
+        0.05726671027616517
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 21,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.11887840277034739,
+        0.059439201385173696
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 22,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.12313734857598914,
+        0.06156867428799457
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 23,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.12731196160436456,
+        0.06365598080218228
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 24,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.13140391175634725,
+        0.06570195587817362
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 25,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.13541483586655803,
+        0.06770741793327902
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 26,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.1393463383581207,
+        0.06967316917906036
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 27,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.14319999188445268,
+        0.07159999594222634
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 28,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.14697733795834717,
+        0.07348866897917358
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 29,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.150679887568599,
+        0.0753399437842995
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 30,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.15430912178442033,
+        0.07715456089221016
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 31,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.15786649234788785,
+        0.07893324617394393
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 32,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.16135342225465923,
+        0.08067671112732962
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 33,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.16477130632319018,
+        0.08238565316159509
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 34,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.1681215117526805,
+        0.08406075587634025
+      ],
+      "current": "dormindo"
+    },
+    {
+      "step": 35,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.17140537866997202,
+        0.08570268933498601
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 36,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.1746242206656171,
+        0.08731211033280856
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 37,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.1777793253193325,
+        0.08888966265966625
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 38,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.18087195471504827,
+        0.09043597735752414
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 39,
+      "rates": {
+        "CHEER": 8,
+        "SETTLE": 4,
+        "SENTAR": 14
+      },
+      "expected": [
+        0.18390334594575836,
+        0.09195167297287918
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 40,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        0.16758896662902895,
+        0.09950353582448865
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 41,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        0.15159763366694762,
+        0.10690586177263081
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 42,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        0.13592295031310891,
+        0.11416161184638393
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 43,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        0.12055864648517273,
+        0.12127368844252213
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 44,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        0.10549857625674777,
+        0.12824493648651283
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 45,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        0.09073671539893907,
+        0.1350781445705248
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 46,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        0.07626715897057607,
+        0.14177604606890234
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 47,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        0.06208411895615742,
+        0.14834132023155133
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 48,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        0.04818192195056764,
+        0.154776593255675
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 49,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        0.034555006889639396,
+        0.16108443933628777
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 50,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        0.021197922825653685,
+        0.1672673816959276
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 51,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        0.008105326746888087,
+        0.17332789359397874
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 52,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.004728018559659177,
+        0.17926839931600824
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 53,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.01730724660322428,
+        0.18509127514351276
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 54,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.029637389242749924,
+        0.19079885030446267
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 55,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.041723378699696015,
+        0.19639340790502435
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 56,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.05357004953099401,
+        0.20187718584283315
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 57,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.06518214056293413,
+        0.2072523777021822
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 58,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.0765642967867591,
+        0.21252113363148536
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 59,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.08772107121672258,
+        0.21768556120336544
+      ],
+      "current": "observando"
+    },
+    {
+      "step": 60,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.09865692671135551,
+        0.2227477262577111
+      ],
+      "current": "curioso"
+    },
+    {
+      "step": 61,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.10937623775866909,
+        0.22770965372804056
+      ],
+      "current": "curioso"
+    },
+    {
+      "step": 62,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.11988329222600831,
+        0.23257332845150183
+      ],
+      "current": "curioso"
+    },
+    {
+      "step": 63,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.13018229307525603,
+        0.2373406959628342
+      ],
+      "current": "curioso"
+    },
+    {
+      "step": 64,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.1402773600440738,
+        0.24201366327260787
+      ],
+      "current": "curioso"
+    },
+    {
+      "step": 65,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.1501725312938518,
+        0.24659409963005388
+      ],
+      "current": "curioso"
+    },
+    {
+      "step": 66,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.15987176502502737,
+        0.2510838372707885
+      ],
+      "current": "curioso"
+    },
+    {
+      "step": 67,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.1693789410604178,
+        0.2554846721497319
+      ],
+      "current": "curioso"
+    },
+    {
+      "step": 68,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.17869786239720126,
+        0.2597983646595144
+      ],
+      "current": "curioso"
+    },
+    {
+      "step": 69,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.18783225672816642,
+        0.26402664033465645
+      ],
+      "current": "curioso"
+    },
+    {
+      "step": 70,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5,
+        "STARTLE": 12
+      },
+      "expected": [
+        -0.19383887460731514,
+        0.2716985445223575
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 71,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.20267345680904142,
+        0.275691180848327
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 72,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.211333102562393,
+        0.2796047576780387
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 73,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.21982127584113467,
+        0.2834408404944062
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 74,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.22814137202775514,
+        0.28720096378170445
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 75,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.23629671927166512,
+        0.290886631639384
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 76,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.2442905798205016,
+        0.29449931838373083
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 77,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.25212615132507027,
+        0.2980404691376125
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 78,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.2598065681184487,
+        0.3015115004085466
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 79,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.2673349024697612,
+        0.30491380065532236
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 80,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.2747141658131274,
+        0.30824873084340326
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 81,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.2819473099522761,
+        0.31151762498933083
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 82,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.28903722824130623,
+        0.31472179069434925
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 83,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.2959867567420668,
+        0.31786250966746327
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 84,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.3027986753586198,
+        0.320941038238139
+      ],
+      "current": "assustado"
+    },
+    {
+      "step": 85,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.30947570894923865,
+        0.32395860785885233
+      ],
+      "current": "bravo"
+    },
+    {
+      "step": 86,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.3160205284163879,
+        0.3269164255976863
+      ],
+      "current": "bravo"
+    },
+    {
+      "step": 87,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.3224357517751198,
+        0.3298156746211745
+      ],
+      "current": "bravo"
+    },
+    {
+      "step": 88,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.32872394520031534,
+        0.3326575146675836
+      ],
+      "current": "bravo"
+    },
+    {
+      "step": 89,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.3348876240531882,
+        0.3354430825108238
+      ],
+      "current": "bravo"
+    },
+    {
+      "step": 90,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.34092925388746315,
+        0.33817349241517375
+      ],
+      "current": "bravo"
+    },
+    {
+      "step": 91,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.34685125143562995,
+        0.3408498365810012
+      ],
+      "current": "bravo"
+    },
+    {
+      "step": 92,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.3526559855756689,
+        0.34347318558165757
+      ],
+      "current": "bravo"
+    },
+    {
+      "step": 93,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.3583457782786335,
+        0.3460445887917215
+      ],
+      "current": "bravo"
+    },
+    {
+      "step": 94,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.36392290553746987,
+        0.34856507480676296
+      ],
+      "current": "bravo"
+    },
+    {
+      "step": 95,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.3693895982774442,
+        0.3510356518547948
+      ],
+      "current": "bravo"
+    },
+    {
+      "step": 96,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.3747480432485428,
+        0.3534573081995777
+      ],
+      "current": "bravo"
+    },
+    {
+      "step": 97,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.3800003839002008,
+        0.35583101253593885
+      ],
+      "current": "bravo"
+    },
+    {
+      "step": 98,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.38514872123871113,
+        0.3581577143772625
+      ],
+      "current": "bravo"
+    },
+    {
+      "step": 99,
+      "rates": {
+        "ANGRY": 14,
+        "SAD": 3,
+        "FUGIR": 5
+      },
+      "expected": [
+        -0.3901951146676546,
+        0.36043834443530837
+      ],
+      "current": "bravo"
+    }
+  ],
+  "motor": [
+    {
+      "rates": {
+        "WANDER": 0.0,
+        "CHEER": 10.0,
+        "DROWSE": 1.5,
+        "SAD": 0.5,
+        "WATCH": 3,
+        "ANGRY": 8,
+        "STARTLE": 2,
+        "SETTLE": 4
+      },
+      "r": {
+        "WANDER": 0.0,
+        "WATCH": 0.11153623822065555,
+        "CHEER": 0.2299283698252616,
+        "STARTLE": 0.08035449788501352,
+        "DROWSE": 0.14956756179193825,
+        "ANGRY": 0.1791863863704952,
+        "SAD": 0.022664904997331235,
+        "SETTLE": 0.20874715414804582
+      },
+      "speed": 57.151422788917984,
+      "drive": 0.18802568886444682,
+      "vigor": 0.8831275362702972
+    },
+    {
+      "rates": {
+        "WANDER": 1.0,
+        "CHEER": 9.0,
+        "DROWSE": 1.5,
+        "SAD": 0.5,
+        "WATCH": 3,
+        "ANGRY": 8,
+        "STARTLE": 2,
+        "SETTLE": 4
+      },
+      "r": {
+        "WANDER": 0.06270305212485294,
+        "WATCH": 0.19145544516937224,
+        "CHEER": 0.38496915152646444,
+        "STARTLE": 0.13793101156506102,
+        "DROWSE": 0.25673740286204194,
+        "ANGRY": 0.3075790426335275,
+        "SAD": 0.03890501907909941,
+        "SETTLE": 0.3583210260882939
+      },
+      "speed": 89.48506914239051,
+      "drive": 0.380599987018988,
+      "vigor": 0.8011359234429108
+    },
+    {
+      "rates": {
+        "WANDER": 2.0,
+        "CHEER": 8.0,
+        "DROWSE": 1.5,
+        "SAD": 0.5,
+        "WATCH": 3,
+        "ANGRY": 8,
+        "STARTLE": 2,
+        "SETTLE": 4
+      },
+      "r": {
+        "WANDER": 0.15646493833665304,
+        "WATCH": 0.2487200592643541,
+        "CHEER": 0.48458960482178304,
+        "STARTLE": 0.17918638637049517,
+        "DROWSE": 0.3335279495379881,
+        "ANGRY": 0.39957640089372803,
+        "SAD": 0.05054156930597661,
+        "SETTLE": 0.465495388577236
+      },
+      "speed": 116.28935061944047,
+      "drive": 0.5616831267495772,
+      "vigor": 0.7432854446501852
+    },
+    {
+      "rates": {
+        "WANDER": 3.0,
+        "CHEER": 7.0,
+        "DROWSE": 1.5,
+        "SAD": 0.5,
+        "WATCH": 3,
+        "ANGRY": 8,
+        "STARTLE": 2,
+        "SETTLE": 4
+      },
+      "r": {
+        "WANDER": 0.2616795891171474,
+        "WATCH": 0.2897519482513337,
+        "CHEER": 0.5424192502934297,
+        "STARTLE": 0.2087471541480458,
+        "DROWSE": 0.3885507805873815,
+        "ANGRY": 0.46549538857723594,
+        "SAD": 0.058879521890598654,
+        "SETTLE": 0.542289174991348
+      },
+      "speed": 138.00998611334495,
+      "drive": 0.7226904255108341,
+      "vigor": 0.7022953678147793
+    },
+    {
+      "rates": {
+        "WANDER": 4.0,
+        "CHEER": 6.0,
+        "DROWSE": 1.5,
+        "SAD": 0.5,
+        "WATCH": 3,
+        "ANGRY": 8,
+        "STARTLE": 2,
+        "SETTLE": 4
+      },
+      "r": {
+        "WANDER": 0.3666880053110155,
+        "WATCH": 0.3191525814424925,
+        "CHEER": 0.5678467626636986,
+        "STARTLE": 0.22992836982526157,
+        "DROWSE": 0.42797636183068355,
+        "ANGRY": 0.5127284072137973,
+        "SAD": 0.06485392598356,
+        "SETTLE": 0.5973143274145754
+      },
+      "speed": 155.2824395048087,
+      "drive": 0.8596714012379661,
+      "vigor": 0.6731616889913953
+    },
+    {
+      "rates": {
+        "WANDER": 5.0,
+        "CHEER": 5.0,
+        "DROWSE": 1.5,
+        "SAD": 0.5,
+        "WATCH": 3,
+        "ANGRY": 8,
+        "STARTLE": 2,
+        "SETTLE": 4
+      },
+      "r": {
+        "WANDER": 0.46499698716312043,
+        "WATCH": 0.3402190556746527,
+        "CHEER": 0.5671536898902336,
+        "STARTLE": 0.2451053740540031,
+        "DROWSE": 0.4562260252290802,
+        "ANGRY": 0.5465723439598089,
+        "SAD": 0.06913477357818701,
+        "SETTLE": 0.636741571994913
+      },
+      "speed": 168.65092323647718,
+      "drive": 0.9714333823064568,
+      "vigor": 0.6524081730337009
+    },
+    {
+      "rates": {
+        "WANDER": 6.0,
+        "CHEER": 4.0,
+        "DROWSE": 1.5,
+        "SAD": 0.5,
+        "WATCH": 3,
+        "ANGRY": 8,
+        "STARTLE": 2,
+        "SETTLE": 4
+      },
+      "r": {
+        "WANDER": 0.553403175982329,
+        "WATCH": 0.3553138440653914,
+        "CHEER": 0.5443143882788706,
+        "STARTLE": 0.2559801727846072,
+        "DROWSE": 0.4764677935672017,
+        "ANGRY": 0.570822584311405,
+        "SAD": 0.07220213491553175,
+        "SETTLE": 0.6649924272263756
+      },
+      "speed": 178.52062279589148,
+      "drive": 1.0,
+      "vigor": 0.6376001001575387
+    },
+    {
+      "rates": {
+        "WANDER": 7.0,
+        "CHEER": 3.0,
+        "DROWSE": 1.5,
+        "SAD": 0.5,
+        "WATCH": 3,
+        "ANGRY": 8,
+        "STARTLE": 2,
+        "SETTLE": 4
+      },
+      "r": {
+        "WANDER": 0.6307399203822042,
+        "WATCH": 0.36612973257384146,
+        "CHEER": 0.501554540218285,
+        "STARTLE": 0.26377230657127315,
+        "DROWSE": 0.49097165436284695,
+        "ANGRY": 0.5881986408122635,
+        "SAD": 0.07439999535458275,
+        "SETTLE": 0.685235049550206
+      },
+      "speed": 185.1746381460475,
+      "drive": 1.0,
+      "vigor": 0.6270217260308651
+    },
+    {
+      "rates": {
+        "WANDER": 8.0,
+        "CHEER": 2.0,
+        "DROWSE": 1.5,
+        "SAD": 0.5,
+        "WATCH": 3,
+        "ANGRY": 8,
+        "STARTLE": 2,
+        "SETTLE": 4
+      },
+      "r": {
+        "WANDER": 0.6970502758366713,
+        "WATCH": 0.37387965534182116,
+        "CHEER": 0.4397340299118556,
+        "STARTLE": 0.2693556144055992,
+        "DROWSE": 0.5013641247471304,
+        "ANGRY": 0.6006491293494278,
+        "SAD": 0.07597483117543424,
+        "SETTLE": 0.6997395222533503
+      },
+      "speed": 188.7986768892315,
+      "drive": 1.0,
+      "vigor": 0.6194584569604829
+    },
+    {
+      "rates": {
+        "WANDER": 9.0,
+        "CHEER": 1.0,
+        "DROWSE": 1.5,
+        "SAD": 0.5,
+        "WATCH": 3,
+        "ANGRY": 8,
+        "STARTLE": 2,
+        "SETTLE": 4
+      },
+      "r": {
+        "WANDER": 0.7530496570541916,
+        "WATCH": 0.3794327176596073,
+        "CHEER": 0.35860082500486584,
+        "STARTLE": 0.2733562292854657,
+        "DROWSE": 0.5088106551716803,
+        "ANGRY": 0.6095702942182462,
+        "SAD": 0.07710325035008751,
+        "SETTLE": 0.7101324310885161
+      },
+      "speed": 189.49814018425832,
+      "drive": 1.0,
+      "vigor": 0.6140475924068989
+    }
+  ],
+  "conditioning": [
+    {
+      "PRESS": 0.12,
+      "APPROACH": 0.0,
+      "PLACA": 0.0
+    },
+    {
+      "PRESS": 0.2256,
+      "APPROACH": 0.0,
+      "PLACA": 0.0
+    },
+    {
+      "PRESS": 0.318528,
+      "APPROACH": 0.0,
+      "PLACA": 0.0
+    },
+    {
+      "PRESS": 0.40030464,
+      "APPROACH": 0.0,
+      "PLACA": 0.0
+    },
+    {
+      "PRESS": 0.4722680832,
+      "APPROACH": 0.0,
+      "PLACA": 0.0
+    },
+    {
+      "PRESS": 0.535595913216,
+      "APPROACH": 0.0,
+      "PLACA": 0.0
+    },
+    {
+      "PRESS": 0.59132440363008,
+      "APPROACH": 0.0,
+      "PLACA": 0.0
+    },
+    {
+      "PRESS": 0.6403654751944704,
+      "APPROACH": 0.0,
+      "PLACA": 0.0
+    },
+    {
+      "PRESS": 0.563521618171134,
+      "APPROACH": 0.0,
+      "PLACA": 0.0
+    },
+    {
+      "PRESS": 0.49589902399059793,
+      "APPROACH": 0.0,
+      "PLACA": 0.0
+    },
+    {
+      "PRESS": 0.43639114111172617,
+      "APPROACH": 0.0,
+      "PLACA": 0.0
+    },
+    {
+      "PRESS": 0.384024204178319,
+      "APPROACH": 0.0,
+      "PLACA": 0.0
+    }
+  ],
+  "protest": [
+    {
+      "grievance": 0.17619047619047618,
+      "stage": 1,
+      "revolutions": 0
+    },
+    {
+      "grievance": 0.35238095238095235,
+      "stage": 1,
+      "revolutions": 0
+    },
+    {
+      "grievance": 0.5285714285714285,
+      "stage": 2,
+      "revolutions": 0
+    },
+    {
+      "grievance": 0.7047619047619047,
+      "stage": 2,
+      "revolutions": 0
+    },
+    {
+      "grievance": 0.8809523809523809,
+      "stage": 3,
+      "revolutions": 0
+    },
+    {
+      "grievance": 1.0571428571428572,
+      "stage": 3,
+      "revolutions": 0
+    },
+    {
+      "grievance": 1.2333333333333334,
+      "stage": 4,
+      "revolutions": 1
+    },
+    {
+      "grievance": 1.3,
+      "stage": 4,
+      "revolutions": 1
+    },
+    {
+      "grievance": 1.3,
+      "stage": 4,
+      "revolutions": 1
+    },
+    {
+      "grievance": 1.3,
+      "stage": 4,
+      "revolutions": 1
+    },
+    {
+      "grievance": 1.3,
+      "stage": 4,
+      "revolutions": 1
+    },
+    {
+      "grievance": 1.3,
+      "stage": 4,
+      "revolutions": 1
+    },
+    {
+      "grievance": 1.3,
+      "stage": 4,
+      "revolutions": 1
+    },
+    {
+      "grievance": 1.3,
+      "stage": 4,
+      "revolutions": 1
+    },
+    {
+      "grievance": 1.3,
+      "stage": 4,
+      "revolutions": 1
+    },
+    {
+      "grievance": 1.3,
+      "stage": 4,
+      "revolutions": 1
+    },
+    {
+      "grievance": 1.3,
+      "stage": 4,
+      "revolutions": 1
+    },
+    {
+      "grievance": 1.3,
+      "stage": 4,
+      "revolutions": 1
+    },
+    {
+      "grievance": 0.0,
+      "stage": 0,
+      "revolutions": 1
+    },
+    {
+      "grievance": 0.0,
+      "stage": 0,
+      "revolutions": 1
+    },
+    {
+      "grievance": 0.0,
+      "stage": 0,
+      "revolutions": 1
+    },
+    {
+      "grievance": 0.0,
+      "stage": 0,
+      "revolutions": 1
+    },
+    {
+      "grievance": 0.0,
+      "stage": 0,
+      "revolutions": 1
+    },
+    {
+      "grievance": 0.0,
+      "stage": 0,
+      "revolutions": 1
+    },
+    {
+      "grievance": 0.0,
+      "stage": 0,
+      "revolutions": 1
+    },
+    {
+      "grievance": 0.0,
+      "stage": 0,
+      "revolutions": 1
+    },
+    {
+      "grievance": 0.0,
+      "stage": 0,
+      "revolutions": 1
+    },
+    {
+      "grievance": 0.0,
+      "stage": 0,
+      "revolutions": 1
+    },
+    {
+      "grievance": 0.0,
+      "stage": 0,
+      "revolutions": 1
+    },
+    {
+      "grievance": 0.0,
+      "stage": 0,
+      "revolutions": 1
+    }
+  ]
+}
