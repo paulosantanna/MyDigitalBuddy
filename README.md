@@ -2,8 +2,6 @@
 
 Um companheiro de desktop local, reimplementado em **Rust**, com rede neural pulsada de 470 neurônios, emoções, personalidade, memória e física 2D.
 
-Derivado de [Pestinha, de mille-okws e colaboradores](https://github.com/mille-okws/pestinha), com mapeamento do legado orientado pelo [Reversa 1.3.6, de Sandeco](https://github.com/sandeco/reversa). A origem, licença e diferenças da migração estão preservadas. Este é um repositório novo, com implementação Rust; não exige Python, NumPy, Qt, servidor, LLM ou GPU de IA.
-
 **Versão inicial de migração.** Os testes numéricos não demonstram paridade completa do aplicativo. A interface foi reescrita e as integrações nativas precisam de validação no desktop de destino. Veja [o relatório de validação](docs/VALIDATION.md) e [as diferenças](docs/MIGRATION.md).
 
 ![Central de controle em execução no teste Linux](docs/control-center.png)
@@ -99,14 +97,6 @@ cargo build --release --locked
 ```
 
 Os testes consomem oráculos executados no Python original, congelados como JSON. **Python não é necessário para executar os testes.** O teste neural injeta o modelo original e os mesmos draws para comparar as equações, isolando a diferença entre geradores aleatórios.
-
-- [Especificações extraídas pelo roteiro Reversa](_reversa_sdd/inventory.md)
-- [Análise técnica e fórmulas](_reversa_sdd/code-analysis.md)
-- [Arquitetura alvo](_reversa_sdd/migration/target_architecture.md)
-- [Critérios de paridade](_reversa_sdd/migration/parity_specs.md)
-- [Proveniência e hashes](docs/PROVENANCE.json)
-- [Migração e diferenças](docs/MIGRATION.md)
-- [Validação executada](docs/VALIDATION.md)
 
 ## Licença e créditos
 
