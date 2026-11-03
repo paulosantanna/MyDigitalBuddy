@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Local llama.cpp on 127.0.0.1, or DeepSeek 4.1 on NVIDIA when that permission is on.
+//! Local llama.cpp on 127.0.0.1, or several NVIDIA models when that permission is on.
+//! The first model to answer is kept, and the others are told to stop.
 //! API keys are read for the request and are never written to logs or the chat.
 
 use super::media::find_file;
@@ -12,13 +13,27 @@ use std::{
     net::{SocketAddr, TcpStream},
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
-    sync::{Arc, Mutex},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+        mpsc,
+    },
     thread,
     time::Duration,
 };
 
 const NVIDIA_URL: &str = "https://integrate.api.nvidia.com/v1/chat/completions";
-const NVIDIA_MODEL: &str = "deepseek-ai/deepseek-v4.1-flash";
+const NVIDIA_WAIT: Duration = Duration::from_secs(12);
+/// Faster models are listed first. All of them run together; the first text wins.
+const NVIDIA_MODELS: &[&str] = &[
+    "nvidia/nemotron-3.5-lightning-30b-a3b",
+    "nvidia/nemotron-3-nano-30b-a3b",
+    "nvidia/nemotron-3.5-bolt-e4b",
+    "nvidia/nemotron-3.5-super-vl-120b-a12b",
+    "nvidia/nemotron-3-super-120b-a12b",
+    "nvidia/nemotron-3-ultra-550b-a55b",
+    "deepseek-ai/deepseek-v4.1-flash",
+];
 
 pub struct LocalProcess {
     pub child: Child,
@@ -36,11 +51,11 @@ pub fn complete(
     cancel: &std::sync::atomic::AtomicBool,
 ) -> Result<String, String> {
     if settings.cloud_deepseek {
-        nvidia(messages, settings)
+        nvidia(messages, settings, cancel)
     } else if settings.assistant {
         local(messages, settings, content_root, data_root, llama, cancel)
     } else {
-        Err("ligue o assistente local ou o DeepSeek na NVIDIA, em Permissões".into())
+        Err("ligue o assistente local ou a NVIDIA, em Permissões".into())
     }
 }
 
@@ -92,29 +107,115 @@ fn key_path(settings: &Settings) -> PathBuf {
     PathBuf::from(settings.nvidia_key_file.trim())
 }
 
-fn nvidia(messages: &[PromptMessage], settings: &Settings) -> Result<String, String> {
+enum Attempt {
+    Reply(String),
+    Auth,
+    Failed(String),
+}
+
+fn nvidia(
+    messages: &[PromptMessage],
+    settings: &Settings,
+    external: &AtomicBool,
+) -> Result<String, String> {
     let keys = load_nvapi_keys(settings)?;
-    let body = chat_body(NVIDIA_MODEL, messages, 1.0, 0.95);
     let mut last = "a NVIDIA recusou a autenticação".to_string();
     for key in &keys {
-        match post_nvidia(key, &body) {
-            Ok((200, text)) => {
-                let value = serde_json::from_str(&text).map_err(|_| "resposta NVIDIA inválida")?;
-                return dialogue::extract_reply(&value);
-            }
-            Ok((401 | 403, _)) => {
-                last = "a NVIDIA recusou a autenticação".into();
-            }
-            Ok((status, text)) => {
-                last = format!(
-                    "a NVIDIA respondeu {status}: {}",
-                    redact(&json_message(&text))
-                );
-            }
-            Err(error) => last = redact(&error),
+        if external.load(Ordering::Relaxed) {
+            return Err("interrompido".into());
+        }
+        match race_key(key, messages, external) {
+            Ok(text) => return Ok(text),
+            Err(message) if message == "interrompido" => return Err(message),
+            Err(message) => last = message,
         }
     }
     Err(last)
+}
+
+fn race_key(
+    key: &str,
+    messages: &[PromptMessage],
+    external: &AtomicBool,
+) -> Result<String, String> {
+    let stop = Arc::new(AtomicBool::new(false));
+    let (tx, rx) = mpsc::channel();
+    for model in NVIDIA_MODELS {
+        let tx = tx.clone();
+        let stop = Arc::clone(&stop);
+        let key = key.to_string();
+        let messages = messages.to_vec();
+        let model = *model;
+        thread::spawn(move || {
+            if stop.load(Ordering::Relaxed) {
+                let _ = tx.send(Attempt::Failed("encerrado".into()));
+                return;
+            }
+            let _ = tx.send(ask_model(&key, model, &messages));
+        });
+    }
+    drop(tx);
+    finish_race(rx, NVIDIA_MODELS.len(), &stop, external)
+}
+
+fn finish_race(
+    rx: mpsc::Receiver<Attempt>,
+    mut pending: usize,
+    stop: &AtomicBool,
+    external: &AtomicBool,
+) -> Result<String, String> {
+    let mut failures = Vec::new();
+    let mut auths = 0usize;
+    while pending > 0 {
+        if external.load(Ordering::Relaxed) {
+            stop.store(true, Ordering::Relaxed);
+            return Err("interrompido".into());
+        }
+        match rx.recv_timeout(Duration::from_millis(200)) {
+            Ok(Attempt::Reply(text)) => {
+                stop.store(true, Ordering::Relaxed);
+                return Ok(text);
+            }
+            Ok(Attempt::Auth) => {
+                pending -= 1;
+                auths += 1;
+            }
+            Ok(Attempt::Failed(message)) => {
+                pending -= 1;
+                if message != "encerrado" {
+                    failures.push(message);
+                }
+            }
+            Err(mpsc::RecvTimeoutError::Timeout) => {}
+            Err(mpsc::RecvTimeoutError::Disconnected) => break,
+        }
+    }
+    if auths > 0 && failures.is_empty() {
+        Err("a NVIDIA recusou a autenticação".into())
+    } else if let Some(message) = failures.first() {
+        Err(redact(message))
+    } else {
+        Err("nenhum modelo da NVIDIA respondeu".into())
+    }
+}
+
+fn ask_model(key: &str, model: &str, messages: &[PromptMessage]) -> Attempt {
+    let body = chat_body(model, messages, 1.0, 0.95, Some(false));
+    match post_nvidia(key, &body) {
+        Ok((200, text)) => match serde_json::from_str::<serde_json::Value>(&text) {
+            Ok(value) => match dialogue::extract_reply(&value) {
+                Ok(reply) => Attempt::Reply(reply),
+                Err(error) => Attempt::Failed(format!("{model}: {error}")),
+            },
+            Err(_) => Attempt::Failed(format!("{model}: resposta NVIDIA inválida")),
+        },
+        Ok((401 | 403, _)) => Attempt::Auth,
+        Ok((status, text)) => Attempt::Failed(format!(
+            "{model} respondeu {status}: {}",
+            redact(&json_message(&text))
+        )),
+        Err(error) => Attempt::Failed(format!("{model}: {}", redact(&error))),
+    }
 }
 
 fn post_nvidia(key: &str, body: &serde_json::Value) -> Result<(u16, String), String> {
@@ -145,7 +246,8 @@ fn post_nvidia(key: &str, body: &serde_json::Value) -> Result<(u16, String), Str
 
 fn nvidia_agent() -> ureq::Agent {
     ureq::Agent::config_builder()
-        .timeout_global(Some(Duration::from_secs(120)))
+        .http_status_as_error(false)
+        .timeout_global(Some(NVIDIA_WAIT))
         .build()
         .into()
 }
@@ -160,7 +262,7 @@ fn local(
 ) -> Result<String, String> {
     let port = ensure_local(settings, content_root, data_root, llama, cancel)?;
     let origin = local_origin(port)?;
-    let body = serde_json::to_vec(&chat_body("qwen", messages, 0.7, 0.9))
+    let body = serde_json::to_vec(&chat_body("qwen", messages, 0.7, 0.9, None))
         .map_err(|_| "não foi possível montar o pedido".to_string())?;
     let (status, bytes) = post_local(&origin, &body)?;
     if status != 200 {
@@ -458,8 +560,9 @@ fn chat_body(
     messages: &[PromptMessage],
     temperature: f64,
     top_p: f64,
+    thinking: Option<bool>,
 ) -> serde_json::Value {
-    serde_json::json!({
+    let mut body = serde_json::json!({
         "model": model,
         "messages": messages.iter().map(|message| serde_json::json!({
             "role": message.role,
@@ -469,7 +572,14 @@ fn chat_body(
         "temperature": temperature,
         "top_p": top_p,
         "stream": false,
-    })
+    });
+    if let Some(thinking) = thinking {
+        body["chat_template_kwargs"] = serde_json::json!({
+            "thinking": thinking,
+            "enable_thinking": thinking,
+        });
+    }
+    body
 }
 
 fn json_message(text: &str) -> String {
@@ -512,5 +622,55 @@ mod tests {
             b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n";
         let (_, body) = split_http(chunked).unwrap();
         assert_eq!(body, b"hello");
+    }
+
+    #[test]
+    fn nvidia_request_turns_thinking_off() {
+        let messages = [PromptMessage {
+            role: "user",
+            content: "oi".into(),
+        }];
+        let body = chat_body(
+            "deepseek-ai/deepseek-v4.1-flash",
+            &messages,
+            1.0,
+            0.95,
+            Some(false),
+        );
+        assert_eq!(body["chat_template_kwargs"]["thinking"], false);
+        assert_eq!(body["chat_template_kwargs"]["enable_thinking"], false);
+        assert_eq!(body["stream"], false);
+        let local = chat_body("qwen", &messages, 0.7, 0.9, None);
+        assert!(local.get("chat_template_kwargs").is_none());
+    }
+
+    #[test]
+    fn nvidia_roster_includes_super_ultra_and_deepseek() {
+        let ids = NVIDIA_MODELS.join(" ");
+        assert!(ids.contains("nemotron-3.5-super"));
+        assert!(ids.contains("nemotron-3-ultra"));
+        assert!(ids.contains("deepseek-ai/deepseek-v4.1-flash"));
+        assert!(NVIDIA_MODELS.len() >= 4);
+    }
+
+    #[test]
+    fn first_nvidia_reply_ends_the_other_attempts() {
+        let stop = AtomicBool::new(false);
+        let external = AtomicBool::new(false);
+        let (tx, rx) = mpsc::channel();
+        let late = tx.clone();
+        thread::spawn(move || {
+            thread::sleep(Duration::from_millis(80));
+            let _ = late.send(Attempt::Reply("primeiro".into()));
+        });
+        thread::spawn(move || {
+            thread::sleep(Duration::from_secs(2));
+            let _ = tx.send(Attempt::Reply("tarde".into()));
+        });
+        let started = std::time::Instant::now();
+        let reply = finish_race(rx, 2, &stop, &external).unwrap();
+        assert_eq!(reply, "primeiro");
+        assert!(started.elapsed() < Duration::from_millis(800));
+        assert!(stop.load(Ordering::Relaxed));
     }
 }

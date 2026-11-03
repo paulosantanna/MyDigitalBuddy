@@ -116,8 +116,13 @@ struct Desktop {
     quit: bool,
     in_tray: bool,
     restore_until: Option<Instant>,
+    /// Set only after the central window has been focused and visible.
+    /// Stops a focus loss from being treated as a minimize.
+    hide_armed: bool,
     start_in_tray: bool,
     draft: String,
+    speech: Option<String>,
+    speech_until: Instant,
     import_path: String,
     runtime: Runtime,
     seen_panic: u64,
@@ -171,8 +176,11 @@ impl Desktop {
             quit: false,
             in_tray: false,
             restore_until: None,
+            hide_armed: false,
             start_in_tray,
             draft: String::new(),
+            speech: None,
+            speech_until: Instant::now(),
             import_path: String::new(),
             runtime: Runtime::new(),
             seen_panic,
@@ -217,7 +225,8 @@ impl Desktop {
     fn restore_central(&mut self, ctx: &egui::Context) {
         self.in_tray = false;
         self.start_in_tray = false;
-        self.restore_until = Some(Instant::now() + Duration::from_millis(600));
+        self.hide_armed = false;
+        self.restore_until = Some(Instant::now());
         ctx.send_viewport_cmd_to(ViewportId::ROOT, ViewportCommand::Minimized(false));
         ctx.send_viewport_cmd_to(ViewportId::ROOT, ViewportCommand::Visible(true));
         ctx.send_viewport_cmd_to(ViewportId::ROOT, ViewportCommand::Focus);
@@ -448,7 +457,7 @@ impl Desktop {
         }
         ui.label(
             egui::RichText::new(
-                "Minimizar ou fechar esta janela manda a central para a bandeja. O companheiro continua no desktop. Sair, no ícone da bandeja ou no menu do pet, encerra o programa.",
+                "Fechar esta janela manda a central para a bandeja. Clicar fora não esconde. Minimizar deixa na barra de tarefas. Sair, no ícone da bandeja ou no menu do pet, encerra o programa.",
             )
             .small(),
         );
@@ -465,14 +474,17 @@ impl Desktop {
         ui.label("Conversa");
         ui.checkbox(&mut s.assistant, "Assistente local (llama.cpp, sem Ollama)");
         ui.checkbox(&mut s.microphone, "Microfone");
-        ui.checkbox(&mut s.cloud_deepseek, "DeepSeek na NVIDIA");
+        ui.checkbox(
+            &mut s.cloud_deepseek,
+            "NVIDIA (Nemotron, DeepSeek e outros)",
+        );
         if s.cloud_deepseek {
             ui.colored_label(
                 Color32::YELLOW,
-                "A conversa e os textos importados são enviados à NVIDIA.",
+                "A conversa e os textos importados são enviados à NVIDIA. Vale a primeira resposta.",
             );
         }
-        ui.label("O Gostei guarda a frase. A rede pulsada não muda.");
+        ui.label("Cada conversa entra na memória deste perfil e no aprendizado.");
         ui.collapsing("Arquivos do assistente", |ui| {
             ui.label("Vazio procura ao lado do programa. Qwen2.5-7B-Instruct Q4_K_M é o GGUF recomendado.");
             ui.label("Modelo GGUF");
@@ -658,7 +670,7 @@ impl Desktop {
     }
     fn privacy_line(&self) -> &'static str {
         if self.engine.settings.cloud_deepseek {
-            "DeepSeek na NVIDIA está ligado. A conversa e os textos importados saem deste computador."
+            "A NVIDIA está ligada. A conversa e os textos importados saem deste computador."
         } else if self.engine.settings.assistant {
             "Assistente local. A conversa fica neste computador."
         } else {
@@ -671,7 +683,7 @@ impl Desktop {
         ui.label(format!(
             "{} · {}",
             if self.engine.settings.cloud_deepseek {
-                "DeepSeek 4.1 na NVIDIA"
+                "NVIDIA · a primeira resposta"
             } else if self.engine.settings.assistant {
                 "modelo local"
             } else {
@@ -688,6 +700,7 @@ impl Desktop {
         egui::ScrollArea::vertical()
             .id_salt("chat-log")
             .max_height(260.0)
+            .stick_to_bottom(true)
             .show(ui, |ui| {
                 if turns.is_empty() {
                     ui.label("Ainda não há mensagens neste perfil.");
@@ -703,12 +716,20 @@ impl Desktop {
                 }
             });
         ui.add_space(6.0);
-        ui.add(
+        let editor = ui.add(
             egui::TextEdit::multiline(&mut self.draft)
                 .desired_rows(3)
-                .hint_text("Escreva em português…")
+                .hint_text("Escreva em português… Enter envia")
                 .desired_width(f32::INFINITY),
         );
+        let submit = editor.has_focus()
+            && ui.input(|input| input.key_pressed(egui::Key::Enter) && !input.modifiers.shift);
+        if submit {
+            while self.draft.ends_with('\n') || self.draft.ends_with('\r') {
+                self.draft.pop();
+            }
+            self.send_draft();
+        }
         ui.horizontal_wrapped(|ui| {
             let can_send = !self.runtime.busy() && !self.draft.trim().is_empty();
             if ui
@@ -798,8 +819,7 @@ impl Desktop {
             return;
         }
         if !self.engine.settings.assistant && !self.engine.settings.cloud_deepseek {
-            self.runtime.status =
-                "ligue o assistente local ou o DeepSeek na NVIDIA, em Permissões".into();
+            self.runtime.status = "ligue o assistente local ou a NVIDIA, em Permissões".into();
             return;
         }
         if !self.engine.dialogue.push_user(&text) {
@@ -823,16 +843,89 @@ impl Desktop {
             .map(|(name, value)| format!("{name} {value:.1}"))
             .collect::<Vec<_>>()
             .join("; ");
+        let heard = self
+            .engine
+            .dialogue
+            .turns
+            .iter()
+            .rev()
+            .find(|turn| turn.role == Role::User)
+            .map(|turn| turn.text.clone())
+            .unwrap_or_default();
+        self.engine.notice_conversation(&heard);
+        let lived = self.engine.lived_context();
+        if let Some(answer) = dialogue::profile_answer(
+            &heard,
+            &self.engine.dialogue,
+            &self.engine.settings.pet,
+            &self.engine.pet.name,
+            &lived,
+        ) {
+            self.runtime.status.clear();
+            self.keep_reply(&answer);
+            return;
+        }
         let messages = self.engine.dialogue.messages(
             &self.engine.settings.pet,
             &self.engine.pet.name,
             self.engine.emotion.current.name(),
             &temperament,
+            &lived,
         );
         self.save();
         let mut request = self.turn_request();
         request.messages = messages;
         self.runtime.start_reply(request);
+    }
+    fn keep_reply(&mut self, answer: &str) {
+        let answer =
+            dialogue::as_companion(answer, &self.engine.settings.pet, &self.engine.pet.name);
+        let (line, gesture) = dialogue::reply_line(&answer);
+        if let Some(gesture) = gesture {
+            let (emotion, wink) = match gesture {
+                dialogue::ReplyGesture::Happy => (crate::core::emotion::Emotion::Happy, false),
+                dialogue::ReplyGesture::Content => (crate::core::emotion::Emotion::Content, false),
+                dialogue::ReplyGesture::Sad => (crate::core::emotion::Emotion::Sad, false),
+                dialogue::ReplyGesture::Angry => (crate::core::emotion::Emotion::Angry, false),
+                dialogue::ReplyGesture::Curious => (crate::core::emotion::Emotion::Curious, false),
+                dialogue::ReplyGesture::Startled => {
+                    (crate::core::emotion::Emotion::Startled, false)
+                }
+                dialogue::ReplyGesture::Sleep => (crate::core::emotion::Emotion::Sleeping, false),
+                dialogue::ReplyGesture::Wink => (crate::core::emotion::Emotion::Content, true),
+            };
+            self.engine.play_expression(emotion, wink);
+        }
+        if line.trim().is_empty() {
+            if gesture.is_some() {
+                self.runtime.status.clear();
+                self.save();
+            } else {
+                self.runtime.status = "a resposta veio vazia".into();
+            }
+            return;
+        }
+        if !self.engine.dialogue.push_assistant(&line) {
+            self.runtime.status = "a resposta veio vazia".into();
+            return;
+        }
+        self.engine.dialogue.reinforce_last();
+        self.save();
+        self.present_reply(&line);
+    }
+    fn present_reply(&mut self, answer: &str) {
+        let shown = dialogue::bubble_text(answer);
+        if shown.trim().is_empty() {
+            return;
+        }
+        self.speech = Some(shown.clone());
+        self.speech_until =
+            Instant::now() + Duration::from_secs_f32(dialogue::bubble_seconds(&shown));
+        self.runtime.speak(
+            shown,
+            self.engine.settings.pet.clone(),
+            assistant::roots(&self.engine.content_root, &self.engine.root),
+        );
     }
     fn speak_last(&mut self) {
         let Some(text) = self
@@ -904,12 +997,27 @@ impl Desktop {
                     self.runtime.status = "a resposta chegou depois da troca de personagem".into();
                     return;
                 }
-                match text {
-                    Ok(answer) => {
-                        self.engine.dialogue.push_assistant(&answer);
-                        self.save();
+                match dialogue::speak_after(
+                    text,
+                    self.engine.settings.assistant,
+                    self.engine.settings.cloud_deepseek,
+                    &self.engine.dialogue,
+                    &self.engine.settings.pet,
+                    &self.engine.pet.name,
+                    &self.engine.lived_context(),
+                ) {
+                    dialogue::Spoken::Model(answer) => self.keep_reply(&answer),
+                    dialogue::Spoken::Memory(answer) => {
+                        self.runtime.status = "respondi pela memória deste perfil.".into();
+                        self.keep_reply(&answer);
                     }
-                    Err(error) => self.runtime.status = error,
+                    dialogue::Spoken::Stopped => {
+                        self.runtime.status = "interrompido".into();
+                    }
+                    dialogue::Spoken::Failed(error) => {
+                        crate::storage::log(&self.engine.root, &format!("conversa: {error}"));
+                        self.runtime.status = error;
+                    }
                 }
             }
             assistant::Event::Heard { pet, text } => {
@@ -963,7 +1071,7 @@ impl Desktop {
             ),
             (
                 "Seu computador, sua privacidade.",
-                "Leio apenas nome do programa em primeiro plano, tempo ocioso, posição do cursor e geometria das janelas. Não leio títulos, conteúdo, conversas nem teclas digitadas. A conversa da aba Conversa fica neste computador, a menos que você ligue o DeepSeek na NVIDIA.",
+                "Leio apenas nome do programa em primeiro plano, tempo ocioso, posição do cursor e geometria das janelas. Não leio títulos, conteúdo, conversas nem teclas digitadas. A conversa da aba Conversa fica neste computador, a menos que você ligue a NVIDIA.",
             ),
             (
                 "As escolhas são suas.",
@@ -1337,6 +1445,78 @@ impl Desktop {
             },
         );
     }
+    fn speech_viewport(&mut self, ctx: &egui::Context) {
+        if Instant::now() >= self.speech_until {
+            self.speech = None;
+        }
+        let Some(text) = self.speech.clone() else {
+            return;
+        };
+        let (width, height) = dialogue::bubble_size(&text);
+        let pos = Pos2::new(
+            self.engine.body.x as f32 - width / 2.0,
+            self.engine.body.y as f32 - 78.0 - height,
+        );
+        ctx.show_viewport_immediate(
+            ViewportId::from_hash_of("speech"),
+            overlay(
+                "MyDigitalBuddy · fala",
+                [width, height],
+                [pos.x, pos.y],
+                false,
+            ),
+            |ui, _| {
+                ui.ctx()
+                    .send_viewport_cmd(ViewportCommand::OuterPosition(pos));
+                let painter = ui.painter();
+                let bubble =
+                    Rect::from_min_max(Pos2::new(8.0, 6.0), Pos2::new(width - 8.0, height - 16.0));
+                let paper = Color32::from_rgb(248, 250, 252);
+                let ink = Color32::from_rgb(15, 23, 42);
+                painter.rect_filled(bubble, 16.0, paper);
+                painter.rect_stroke(
+                    bubble,
+                    16.0,
+                    Stroke::new(2.0, Color32::from_rgb(15, 118, 110)),
+                    egui::StrokeKind::Inside,
+                );
+                let tip = Pos2::new(width / 2.0, height - 3.0);
+                painter.add(egui::Shape::convex_polygon(
+                    vec![
+                        Pos2::new(tip.x - 12.0, bubble.bottom() - 1.0),
+                        Pos2::new(tip.x + 12.0, bubble.bottom() - 1.0),
+                        tip,
+                    ],
+                    paper,
+                    Stroke::new(2.0, Color32::from_rgb(15, 118, 110)),
+                ));
+                painter.text(
+                    bubble.left_top() + Vec2::new(14.0, 8.0),
+                    Align2::LEFT_TOP,
+                    &self.engine.pet.name,
+                    FontId::proportional(13.0),
+                    ACCENT,
+                );
+                let galley = painter.layout(
+                    text.clone(),
+                    FontId::proportional(16.0),
+                    ink,
+                    bubble.width() - 28.0,
+                );
+                painter.galley(
+                    bubble.left_top() + Vec2::new(14.0, 26.0),
+                    galley,
+                    Color32::BLACK,
+                );
+                if ui
+                    .interact(bubble, egui::Id::unique("speech-click"), Sense::click())
+                    .clicked()
+                {
+                    self.speech = None;
+                }
+            },
+        );
+    }
     fn sign_viewport(&mut self, ctx: &egui::Context) {
         if self.engine.asleep || self.engine.time < self.engine.sign_hidden_until {
             return;
@@ -1702,21 +1882,32 @@ impl eframe::App for Desktop {
             self.restore_central(ctx);
         }
         let close_requested = ctx.input(|i| i.viewport().close_requested());
+        let focused = ctx.input(|i| i.viewport().focused) == Some(true);
         let minimized = ctx.input(|i| i.viewport().minimized) == Some(true);
-        if self.restore_until.is_some() {
+        if focused && !minimized {
+            self.hide_armed = true;
+        }
+        let restoring = self.restore_until.is_some();
+        if restoring {
             ctx.send_viewport_cmd(ViewportCommand::Minimized(false));
             ctx.send_viewport_cmd(ViewportCommand::Visible(true));
             ctx.send_viewport_cmd(ViewportCommand::Focus);
-            if self
-                .restore_until
-                .is_some_and(|until| Instant::now() >= until)
-            {
+            if focused && !minimized {
                 self.restore_until = None;
             }
-        } else if !self.quit && close_requested && self.tray.is_some() {
+        }
+        // Losing focus must never hide the central window. Only the close
+        // button, pressed while this window is focused, sends it to the tray.
+        let hide = !self.quit
+            && !restoring
+            && self.tray.is_some()
+            && central_window_action(focused, close_requested, self.hide_armed)
+                == CentralWindow::HideToTray;
+        if close_requested && self.tray.is_some() && !self.quit {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
-            self.hide_to_tray(ctx);
-        } else if !self.quit && minimized {
+        }
+        if hide {
+            self.hide_armed = false;
             self.hide_to_tray(ctx);
         } else if !self.quit && self.start_in_tray && self.initialized && !self.onboarding {
             self.start_in_tray = false;
@@ -1767,6 +1958,7 @@ if ui.button("Redefinir").clicked() {if let Err(e)=self.engine.wipe_memory() {se
             }
             if shown {
                 self.sign_viewport(&ctx);
+                self.speech_viewport(&ctx);
                 self.thing_viewports(&ctx);
                 self.fireworks_viewport(&ctx);
             }
@@ -1794,6 +1986,20 @@ fn app_icon() -> Arc<egui::IconData> {
         width: crate::sophia_icon::SIDE as u32,
         height: crate::sophia_icon::SIDE as u32,
     })
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CentralWindow {
+    Stay,
+    HideToTray,
+}
+
+fn central_window_action(focused: bool, close_requested: bool, hide_armed: bool) -> CentralWindow {
+    if focused && close_requested && hide_armed {
+        CentralWindow::HideToTray
+    } else {
+        CentralWindow::Stay
+    }
 }
 
 fn overlay(title: &str, size: [f32; 2], position: [f32; 2], passthrough: bool) -> ViewportBuilder {
@@ -1833,4 +2039,33 @@ fn load_image(path: &std::path::Path) -> Result<egui::ColorImage, Box<dyn std::e
     let img = reader.decode()?.thumbnail(1024, 1024).to_rgba8();
     let size = [img.width() as usize, img.height() as usize];
     Ok(egui::ColorImage::from_rgba_unmultiplied(size, img.as_raw()))
+}
+
+#[cfg(test)]
+mod central_window_tests {
+    use super::{CentralWindow, central_window_action};
+
+    #[test]
+    fn clicking_outside_never_hides_the_central_window() {
+        assert_eq!(
+            central_window_action(false, false, true),
+            CentralWindow::Stay
+        );
+        assert_eq!(
+            central_window_action(false, true, true),
+            CentralWindow::Stay
+        );
+        assert_eq!(
+            central_window_action(true, true, false),
+            CentralWindow::Stay
+        );
+    }
+
+    #[test]
+    fn close_button_hides_only_while_the_window_is_focused() {
+        assert_eq!(
+            central_window_action(true, true, true),
+            CentralWindow::HideToTray
+        );
+    }
 }

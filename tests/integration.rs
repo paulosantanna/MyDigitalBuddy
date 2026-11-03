@@ -377,3 +377,278 @@ fn each_pet_keeps_its_own_chat() {
     );
     assert!(e.dialogue.reinforced.is_empty());
 }
+
+#[test]
+fn conversation_replies_are_learned_and_stay_on_that_pet() {
+    let dir = Temp::new();
+    let mut sophia = Engine::load(dir.0.clone(), 11).unwrap();
+    sophia.switch_pet("sophia").unwrap();
+    sophia.settings.assistant = true;
+    sophia.settings.cloud_deepseek = false;
+    sophia
+        .dialogue
+        .import_text(
+            "bolo.txt",
+            "A receita de bolo de laranja leva calda. O forno fica quente.",
+        )
+        .unwrap();
+
+    assert!(sophia.dialogue.push_user("Olá, tudo bem?"));
+    let stimulation = sophia.drives.stimulation;
+    let social = mydigitalbuddy::core::topology::SENSORS
+        .iter()
+        .position(|sensor| sensor.0 == "SOCIAL")
+        .unwrap();
+    let weights_before = sophia.brain.learned[social];
+    sophia.notice_conversation("Olá, tudo bem?");
+    assert!(sophia.drives.stimulation > stimulation);
+    assert!(
+        sophia
+            .memory
+            .recent
+            .iter()
+            .any(|episode| episode.context == "conversa"
+                && episode.action == "ouvir"
+                && episode.result.contains("Olá"))
+    );
+    let lived = sophia.lived_context();
+    assert!(lived.contains("conversa → ouvir"));
+    let prompt = sophia
+        .dialogue
+        .messages("sophia", "Sophia", "curioso", "", &lived)
+        .into_iter()
+        .map(|message| message.content)
+        .collect::<String>();
+    assert!(prompt.contains("Olá, tudo bem?"));
+    assert!(prompt.contains("conversa → ouvir"));
+
+    for _ in 0..50 {
+        sophia.advance(0.05, &Snapshot::default());
+    }
+    assert!(sophia.time >= 2.0);
+    let weights_after = sophia.brain.learned[social];
+    assert_ne!(
+        weights_before, weights_after,
+        "a conversa não moveu os pesos sociais"
+    );
+    for _ in 0..20 {
+        sophia.advance(0.05, &Snapshot::default());
+    }
+    assert_eq!(sophia.brain.learned[social], weights_after);
+
+    let missing_model = "não encontrei o GGUF. O recomendado nesta placa é Qwen2.5-7B-Instruct Q4_K_M, em models/qwen.gguf ao lado do programa";
+    assert!(mydigitalbuddy::dialogue::should_answer_from_memory(
+        missing_model,
+        true,
+        false
+    ));
+    assert!(mydigitalbuddy::dialogue::should_answer_from_memory(
+        missing_model,
+        true,
+        true
+    ));
+    assert!(mydigitalbuddy::dialogue::should_answer_from_memory(
+        "a NVIDIA recusou a autenticação",
+        true,
+        true
+    ));
+    assert!(!mydigitalbuddy::dialogue::should_answer_from_memory(
+        "interrompido",
+        true,
+        true
+    ));
+    let greeting = mydigitalbuddy::dialogue::reply_from_memory(
+        &sophia.dialogue,
+        "sophia",
+        "Sophia",
+        &sophia.lived_context(),
+    );
+    assert!(
+        greeting.to_lowercase().contains("olá") || greeting.to_lowercase().contains("tudo bem"),
+        "{greeting}"
+    );
+    assert!(sophia.dialogue.push_assistant(&greeting));
+    assert!(sophia.dialogue.reinforce_last());
+
+    let nvidia = serde_json::json!({
+        "choices": [{
+            "message": {
+                "content": "",
+                "reasoning_content": "<think>hmm</think>\no bolo de laranja leva calda<｜end▁of▁sentence｜>"
+            }
+        }]
+    });
+    let from_nvidia = mydigitalbuddy::dialogue::extract_reply(&nvidia).unwrap();
+    assert_eq!(from_nvidia, "o bolo de laranja leva calda");
+    assert!(sophia.dialogue.push_user("me fala do bolo de laranja"));
+    sophia.notice_conversation("me fala do bolo de laranja");
+    assert!(sophia.dialogue.push_assistant(&from_nvidia));
+    assert!(sophia.dialogue.reinforce_last());
+    sophia.save().unwrap();
+    let saved_weights = sophia.brain.learned[social];
+    drop(sophia);
+
+    let chat = fs::read_to_string(dir.0.join("pets/sophia/chat.jsonl")).unwrap();
+    assert!(chat.contains("\"role\":\"assistant\""));
+    assert!(chat.contains("bolo de laranja leva calda"));
+    let episodes = fs::read_to_string(dir.0.join("pets/sophia/episodes.jsonl")).unwrap();
+    assert!(episodes.contains("conversa"));
+
+    let mut sophia = Engine::load(dir.0.clone(), 12).unwrap();
+    assert_eq!(sophia.settings.pet, "sophia");
+    assert!(
+        !sophia
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("nervous.json"))
+    );
+    assert_eq!(sophia.brain.learned[social], saved_weights);
+    assert!(sophia.dialogue.push_user("quero de novo o bolo de laranja"));
+    let remembered = mydigitalbuddy::dialogue::reply_from_memory(
+        &sophia.dialogue,
+        "sophia",
+        "Sophia",
+        &sophia.lived_context(),
+    );
+    assert!(
+        remembered.contains("calda"),
+        "a resposta seguinte não usou o que foi aprendido: {remembered}"
+    );
+    let again = sophia
+        .dialogue
+        .messages("sophia", "Sophia", "curioso", "", &sophia.lived_context())
+        .into_iter()
+        .map(|message| message.content)
+        .collect::<String>();
+    assert!(again.contains("bolo de laranja leva calda"));
+    assert!(again.contains("conversa → ouvir"));
+
+    sophia.switch_pet("bia").unwrap();
+    assert!(sophia.dialogue.turns.is_empty());
+    assert!(sophia.dialogue.reinforced.is_empty());
+    assert!(!sophia.lived_context().contains("bolo"));
+    assert!(sophia.dialogue.push_user("quero o bolo de laranja"));
+    let bia = mydigitalbuddy::dialogue::reply_from_memory(
+        &sophia.dialogue,
+        "bia",
+        "Bia",
+        &sophia.lived_context(),
+    );
+    assert!(
+        !bia.contains("calda"),
+        "a memória da Sophia vazou para a Bia: {bia}"
+    );
+}
+
+#[cfg(feature = "desktop")]
+#[test]
+fn local_worker_reports_the_missing_model_without_calling_nvidia() {
+    use mydigitalbuddy::{
+        assistant::{Runtime, TurnRequest},
+        config::Settings,
+        dialogue::PromptMessage,
+    };
+    use std::{
+        thread,
+        time::{Duration, Instant},
+    };
+
+    let dir = Temp::new();
+    let mut runtime = Runtime::new();
+    runtime.start_reply(TurnRequest {
+        pet: "sophia".into(),
+        messages: vec![PromptMessage {
+            role: "user",
+            content: "Olá, tudo bem?".into(),
+        }],
+        settings: Settings {
+            assistant: true,
+            cloud_deepseek: false,
+            model_path: String::new(),
+            llama_server: String::new(),
+            nvidia_key_file: dir.0.join("chave-ausente").display().to_string(),
+            ..Settings::default()
+        },
+        content_root: dir.0.clone(),
+        data_root: dir.0.clone(),
+    });
+    assert!(runtime.busy());
+    let started = Instant::now();
+    let event = loop {
+        if let Some(event) = runtime.poll() {
+            break event;
+        }
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "o pedido local não terminou"
+        );
+        thread::sleep(Duration::from_millis(20));
+    };
+    let mydigitalbuddy::assistant::Event::Reply { pet, text } = event else {
+        panic!("o worker local devolveu outro tipo de evento");
+    };
+    assert_eq!(pet, "sophia");
+    let error = text.expect_err("sem GGUF o modelo local não responde");
+    assert!(
+        mydigitalbuddy::dialogue::should_answer_from_memory(&error, true, false),
+        "{error}"
+    );
+    assert!(
+        mydigitalbuddy::dialogue::should_answer_from_memory(&error, true, true),
+        "com as duas permissões, a falha do modelo ainda precisa de uma fala: {error}"
+    );
+}
+
+#[test]
+fn both_permissions_store_a_visible_reply_and_keep_a_model_answer() {
+    use mydigitalbuddy::dialogue::{Spoken, speak_after};
+    let dir = Temp::new();
+    let mut sophia = Engine::load(dir.0.clone(), 21).unwrap();
+    sophia.switch_pet("sophia").unwrap();
+    sophia.settings.assistant = true;
+    sophia.settings.cloud_deepseek = true;
+    assert!(sophia.dialogue.push_user("Oi, como vai?"));
+    sophia.notice_conversation("Oi, como vai?");
+    let lived = sophia.lived_context();
+    let spoken = speak_after(
+        Err("a NVIDIA respondeu 429: ocupada".into()),
+        true,
+        true,
+        &sophia.dialogue,
+        "sophia",
+        "Sophia",
+        &lived,
+    );
+    let Spoken::Memory(answer) = spoken else {
+        panic!("as duas permissões ficaram sem fala: {spoken:?}");
+    };
+    assert!(!answer.trim().is_empty(), "{answer}");
+    assert!(sophia.dialogue.push_assistant(&answer));
+    assert!(sophia.dialogue.reinforce_last());
+    sophia.save().unwrap();
+    drop(sophia);
+
+    let chat = fs::read_to_string(dir.0.join("pets/sophia/chat.jsonl")).unwrap();
+    assert!(chat.contains("\"role\":\"assistant\""), "{chat}");
+    assert!(chat.contains("\"role\":\"user\""), "{chat}");
+
+    let mut sophia = Engine::load(dir.0.clone(), 22).unwrap();
+    assert!(
+        sophia
+            .dialogue
+            .turns
+            .iter()
+            .any(|turn| turn.role == mydigitalbuddy::dialogue::Role::Assistant)
+    );
+    assert!(sophia.dialogue.push_user("e agora"));
+    let model = speak_after(
+        Ok("Oi! Tudo bem, sim.".into()),
+        sophia.settings.assistant,
+        sophia.settings.cloud_deepseek,
+        &sophia.dialogue,
+        "sophia",
+        "Sophia",
+        &sophia.lived_context(),
+    );
+    assert_eq!(model, Spoken::Model("Oi! Tudo bem, sim.".into()));
+}

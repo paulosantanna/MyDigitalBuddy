@@ -107,6 +107,9 @@ pub struct Engine {
     pub sign_until: f64,
     pub sign_text: Option<String>,
     pub sign_hidden_until: f64,
+    pub expression: Emotion,
+    pub expression_until: f64,
+    pub wink_until: f64,
     pub scene_positions: BTreeMap<String, [f64; 2]>,
     pub senses: Senses,
     tracker: ActivityTracker,
@@ -121,6 +124,7 @@ pub struct Engine {
     next_paper: f64,
     caress_until: f64,
     penalty_until: f64,
+    talk_until: f64,
     dismisses: Vec<f64>,
     poke_at: f64,
     poke_probe: Option<(f64, f64)>,
@@ -235,6 +239,9 @@ impl Engine {
             sign_until: 0.0,
             sign_text: None,
             sign_hidden_until: 0.0,
+            expression: Emotion::Watching,
+            expression_until: 0.0,
+            wink_until: 0.0,
             scene_positions: BTreeMap::new(),
             senses: Senses::default(),
             tracker: ActivityTracker::default(),
@@ -249,6 +256,7 @@ impl Engine {
             next_paper: 0.0,
             caress_until: 0.0,
             penalty_until: 0.0,
+            talk_until: 0.0,
             dismisses: Vec::new(),
             poke_at: -1e9,
             poke_probe: None,
@@ -466,6 +474,43 @@ impl Engine {
         );
         storage::write_json(&self.root.join("panels.json"), &self.scene_positions)?;
         Ok(())
+    }
+
+    pub fn play_expression(&mut self, emotion: Emotion, wink: bool) {
+        self.expression = emotion;
+        self.expression_until = self.time + 3.2;
+        self.emotion.current = emotion;
+        self.emotion.since = self.time;
+        let _ = self.emotion.force(emotion, 3.2, self.time, 60);
+        if wink {
+            self.wink_until = self.time + 0.7;
+        }
+    }
+
+    /// A spoken turn is social contact: the brain gets a short reward and the episode is kept.
+    pub fn notice_conversation(&mut self, heard: &str) {
+        self.talk_until = self.time + 2.0;
+        self.drives.stimulate("talk", 1.0);
+        self.drives.touched("talk", 1.0);
+        let heard: String = heard.chars().take(160).collect();
+        self.memory
+            .record(storage::wall_time(), "conversa", "ouvir", &heard, 0.6);
+    }
+
+    pub fn lived_context(&self) -> String {
+        self.memory
+            .recent
+            .iter()
+            .rev()
+            .take(12)
+            .map(|episode| {
+                format!(
+                    "{} → {}: {}",
+                    episode.context, episode.action, episode.result
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
     }
     pub fn panic(&mut self) {
         self.settings.active = false;
@@ -809,6 +854,10 @@ impl Engine {
         } else {
             0.0
         };
+        if self.time < self.talk_until {
+            let social = self.intensities.get("SOCIAL").copied().unwrap_or(0.0);
+            self.intensities.insert("SOCIAL".into(), social.max(0.85));
+        }
         for (name, value) in [
             ("PEDIDO", self.desk.signal(self.time)),
             ("PRESO", if self.corner.inside { 1.0 } else { 0.0 }),
@@ -869,6 +918,9 @@ impl Engine {
         };
         if self.time < self.corner.punishment_until {
             reward -= 1.0;
+        }
+        if self.time < self.talk_until {
+            reward += 0.45;
         }
         self.brain.learn(reward, dt, p.learn_rate);
         if let Some((due, before)) = self.poke_probe

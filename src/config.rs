@@ -41,7 +41,7 @@ pub struct Settings {
     pub assistant: bool,
     /// Push-to-talk. Off until the person turns it on.
     pub microphone: bool,
-    /// Hosted DeepSeek on NVIDIA. Off until the person turns it on.
+    /// Several hosted NVIDIA models. The first reply is kept. Off until the person turns it on.
     pub cloud_deepseek: bool,
     /// Empty means look for a GGUF beside the program.
     pub model_path: String,

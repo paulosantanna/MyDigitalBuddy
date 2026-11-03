@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Local voice. Piper when a profile model is present, otherwise the Windows voice
-//! shaped by pitch and rate. Speech never leaves the machine.
+//! Local voice. Sophia uses Thalita (`voices/sophia-speak.py` + `sophia.voice.json`).
+//! Other profiles use Piper when a model is present, otherwise the Windows voice.
 
 use super::media::find_file;
 use super::router::hide_console;
@@ -25,7 +25,7 @@ pub fn speak(
     generation: &AtomicU64,
     id: u64,
 ) -> Result<(), String> {
-    let text = dialogue::clean_text(text);
+    let text = dialogue::fluid_speech(text);
     let text: String = text.chars().take(2500).collect();
     if text.trim().is_empty() {
         return Err("não há fala para ouvir".into());
@@ -34,6 +34,12 @@ pub fn speak(
         return Ok(());
     }
     let voice = prosody(pet_id);
+    if pet_id == "sophia" {
+        if speak_sophia(&text, roots, slot, generation, id).is_ok() {
+            return Ok(());
+        }
+        return speak_system(&text, voice, slot, generation, id);
+    }
     if let Some(model) = voice_model(pet_id, roots)
         && let Some(piper) = find_file("", &["piper", "piper.exe"], roots, None)
         && speak_piper(
@@ -49,15 +55,7 @@ pub fn speak(
     {
         return Ok(());
     }
-    speak_system(
-        &text,
-        voice.feminine,
-        voice.pitch_percent,
-        voice.rate_percent,
-        slot,
-        generation,
-        id,
-    )
+    speak_system(&text, voice, slot, generation, id)
 }
 
 fn voice_model(pet_id: &str, roots: &[PathBuf]) -> Option<PathBuf> {
@@ -69,6 +67,88 @@ fn voice_model(pet_id: &str, roots: &[PathBuf]) -> Option<PathBuf> {
         .iter()
         .map(|root| root.join(&relative))
         .find(|path| path.is_file())
+}
+
+fn speak_sophia(
+    text: &str,
+    roots: &[PathBuf],
+    slot: &Mutex<Option<Child>>,
+    generation: &AtomicU64,
+    id: u64,
+) -> Result<(), String> {
+    let script = sophia_speak_script(roots)
+        .ok_or_else(|| "não encontrei voices/sophia-speak.py".to_string())?;
+    let text_file = temp_path("txt");
+    std::fs::write(&text_file, text).map_err(|_| "não foi possível preparar a voz".to_string())?;
+    let wav = temp_path("wav");
+    let mut command = python_command(&script, &[&text_file, &wav])?;
+    hide_console(&mut command);
+    let child = command
+        .spawn()
+        .map_err(|_| "não foi possível abrir a voz da Sophia (python e edge-tts)".to_string())?;
+    let synth = park_child(child, slot, generation, id);
+    let _ = std::fs::remove_file(&text_file);
+    synth?;
+    if generation.load(Ordering::Relaxed) != id {
+        let _ = std::fs::remove_file(&wav);
+        return Ok(());
+    }
+    if !wav.is_file() {
+        let _ = std::fs::remove_file(&wav);
+        return Err("a voz da Sophia não gerou áudio".into());
+    }
+    let played = play_wav(&wav);
+    let _ = std::fs::remove_file(&wav);
+    played
+}
+
+fn sophia_speak_script(roots: &[PathBuf]) -> Option<PathBuf> {
+    roots
+        .iter()
+        .map(|root| root.join("voices/sophia-speak.py"))
+        .find(|path| path.is_file())
+        .or_else(|| find_file("", &["sophia-speak.py"], roots, None))
+}
+
+fn python_command(script: &Path, args: &[&Path]) -> Result<Command, String> {
+    fn probe(program: &str, prefix: &[&str]) -> bool {
+        let mut cmd = Command::new(program);
+        for part in prefix {
+            cmd.arg(part);
+        }
+        cmd.arg("-c")
+            .arg("import sys")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .map(|status| status.success())
+            .unwrap_or(false)
+    }
+    let work = script
+        .parent()
+        .ok_or_else(|| "voices/sophia-speak.py inválido".to_string())?;
+    let build = |program: &str, prefix: &[&str]| {
+        let mut command = Command::new(program);
+        for part in prefix {
+            command.arg(part);
+        }
+        command
+            .arg(script)
+            .args(args)
+            .current_dir(work)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        command
+    };
+    if probe("python", &[]) {
+        return Ok(build("python", &[]));
+    }
+    if probe("py", &["-3"]) {
+        return Ok(build("py", &["-3"]));
+    }
+    Err("instale Python 3 com edge-tts, numpy e ffmpeg no PATH".into())
 }
 
 fn speak_piper(
@@ -111,9 +191,7 @@ fn speak_piper(
 
 fn speak_system(
     text: &str,
-    feminine: bool,
-    pitch: i32,
-    rate: i32,
+    voice: dialogue::Prosody,
     slot: &Mutex<Option<Child>>,
     generation: &AtomicU64,
     id: u64,
@@ -122,14 +200,8 @@ fn speak_system(
     {
         let ssml = temp_path("xml");
         let script = temp_path("ps1");
-        std::fs::write(
-            &ssml,
-            utf8_bom(&dialogue::prosody_ssml(
-                text,
-                prosody_from(pitch, rate, feminine),
-            )),
-        )
-        .map_err(|_| "não foi possível preparar a voz".to_string())?;
+        std::fs::write(&ssml, utf8_bom(&dialogue::prosody_ssml(text, voice)))
+            .map_err(|_| "não foi possível preparar a voz".to_string())?;
         std::fs::write(&script, SYSTEM_VOICE_SCRIPT)
             .map_err(|_| "não foi possível preparar a voz".to_string())?;
         let mut command = Command::new("powershell");
@@ -139,8 +211,9 @@ fn speak_system(
             .arg("Bypass")
             .arg("-File")
             .arg(&script)
-            .arg(if feminine { "f" } else { "m" })
+            .arg(if voice.feminine { "f" } else { "m" })
             .arg(&ssml)
+            .arg(voice.sapi_rate.clamp(-10, 10).to_string())
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null());
@@ -155,19 +228,33 @@ fn speak_system(
     }
     #[cfg(not(windows))]
     {
-        let _ = (text, feminine, pitch, rate, slot, generation, id);
+        let _ = (text, voice, slot, generation, id);
         Err("a voz do sistema está disponível no Windows. Coloque voices/<perfil>.onnx e o piper ao lado do programa".into())
     }
 }
 
-fn prosody_from(pitch: i32, rate: i32, feminine: bool) -> dialogue::Prosody {
-    dialogue::Prosody {
-        pitch_percent: pitch,
-        rate_percent: rate,
-        length_scale: 1.0,
-        feminine,
-        label: "",
+#[cfg(test)]
+pub fn scale_wav_rate(path: &Path, factor: f32) -> Result<(), String> {
+    if !factor.is_finite() || !(0.5..=2.0).contains(&factor) || (factor - 1.0).abs() < 0.02 {
+        return Ok(());
     }
+    let mut data = std::fs::read(path).map_err(|_| "não foi possível ler a voz".to_string())?;
+    let pos = data
+        .windows(4)
+        .position(|mark| mark == b"fmt ")
+        .ok_or("áudio inválido")?;
+    if data.len() < pos + 20 {
+        return Err("áudio inválido".into());
+    }
+    let rate = u32::from_le_bytes(data[pos + 12..pos + 16].try_into().unwrap_or([0; 4]));
+    let byte_rate = u32::from_le_bytes(data[pos + 16..pos + 20].try_into().unwrap_or([0; 4]));
+    if rate == 0 || byte_rate == 0 {
+        return Err("áudio inválido".into());
+    }
+    let scaled = |value: u32| ((value as f32) * factor).round() as u32;
+    data[pos + 12..pos + 16].copy_from_slice(&scaled(rate).to_le_bytes());
+    data[pos + 16..pos + 20].copy_from_slice(&scaled(byte_rate).to_le_bytes());
+    std::fs::write(path, data).map_err(|_| "não foi possível ajustar a voz".to_string())
 }
 
 fn park_child(
@@ -216,7 +303,17 @@ $pick = $culture | Where-Object { $_.Gender.ToString() -eq $gender } | Select-Ob
 if (-not $pick) { $pick = $culture | Select-Object -First 1 }
 if (-not $pick) { $pick = $voices | Where-Object { $_.Gender.ToString() -eq $gender } | Select-Object -First 1 }
 if ($pick) { $synth.SelectVoice($pick.Name) }
-$synth.SpeakSsml((Get-Content -LiteralPath $args[1] -Raw -Encoding UTF8))
+$rate = 0
+if ($args.Count -ge 3) { [void][int]::TryParse($args[2], [ref]$rate) }
+$synth.Rate = [Math]::Max(-10, [Math]::Min(10, $rate))
+$ssml = Get-Content -LiteralPath $args[1] -Raw -Encoding UTF8
+try {
+    $synth.SpeakSsml($ssml)
+} catch {
+    $plain = [regex]::Replace($ssml, '<[^>]+>', ' ')
+    $synth.Speak($plain)
+}
+$synth.Dispose()
 "#;
 
 pub fn choose_import() -> Option<PathBuf> {
@@ -332,6 +429,41 @@ fn utf8_bom(text: &str) -> Vec<u8> {
     data
 }
 
+static PLAYING: Mutex<Vec<u8>> = Mutex::new(Vec::new());
+
+fn play_memory(bytes: &[u8]) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        if bytes.len() < 44 {
+            return Err("não foi possível tocar o áudio".into());
+        }
+        let mut held = PLAYING.lock().unwrap_or_else(|error| error.into_inner());
+        stop_playback();
+        held.clear();
+        held.extend_from_slice(bytes);
+        let flags = windows_sys::Win32::Media::Audio::SND_MEMORY
+            | windows_sys::Win32::Media::Audio::SND_ASYNC
+            | windows_sys::Win32::Media::Audio::SND_NODEFAULT;
+        let ok = unsafe {
+            windows_sys::Win32::Media::Audio::PlaySoundW(
+                held.as_ptr().cast(),
+                std::ptr::null_mut(),
+                flags,
+            )
+        };
+        if ok != 0 {
+            Ok(())
+        } else {
+            Err("não foi possível tocar o áudio".into())
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = bytes;
+        Err("não foi possível tocar o áudio".into())
+    }
+}
+
 pub fn stop_playback() {
     #[cfg(windows)]
     unsafe {
@@ -346,21 +478,9 @@ pub fn stop_playback() {
 fn play_wav(path: &Path) -> Result<(), String> {
     #[cfg(windows)]
     {
-        let wide: Vec<u16> =
-            std::os::windows::ffi::OsStrExt::encode_wide(std::ffi::OsStr::new(&path.as_os_str()))
-                .chain(std::iter::once(0))
-                .collect();
-        let flags = windows_sys::Win32::Media::Audio::SND_FILENAME
-            | windows_sys::Win32::Media::Audio::SND_ASYNC
-            | windows_sys::Win32::Media::Audio::SND_NODEFAULT;
-        let ok = unsafe {
-            windows_sys::Win32::Media::Audio::PlaySoundW(wide.as_ptr(), std::ptr::null_mut(), flags)
-        };
-        if ok != 0 {
-            Ok(())
-        } else {
-            Err("não foi possível tocar o áudio".into())
-        }
+        let bytes =
+            std::fs::read(path).map_err(|_| "não foi possível tocar o áudio".to_string())?;
+        play_memory(&bytes)
     }
     #[cfg(target_os = "macos")]
     {
@@ -517,5 +637,23 @@ fn record_windows(stop: Arc<AtomicBool>) -> Result<Vec<u8>, String> {
         Err("não ouvi nada".into())
     } else {
         Ok(samples)
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn faster_playback_raises_the_wav_rate() {
+        let path = temp_path("wav");
+        write_wav_bytes(&path, &[0, 0, 0, 0], 22_050).unwrap();
+        scale_wav_rate(&path, 1.2).unwrap();
+        let data = std::fs::read(&path).unwrap();
+        let pos = data.windows(4).position(|mark| mark == b"fmt ").unwrap();
+        let rate = u32::from_le_bytes(data[pos + 12..pos + 16].try_into().unwrap());
+        assert_eq!(rate, 26_460);
+        let _ = std::fs::remove_file(&path);
     }
 }

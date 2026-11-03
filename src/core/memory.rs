@@ -163,6 +163,31 @@ impl Memory {
             self.recent.remove(0);
         }
     }
+    pub fn record(&mut self, when: f64, context: &str, action: &str, result: &str, valence: f64) {
+        if context.is_empty()
+            || action.is_empty()
+            || context.len() >= 300
+            || action.len() >= 100
+            || !valence.is_finite()
+        {
+            return;
+        }
+        let valence = valence.clamp(-1.0, 1.0);
+        self.counter += 1;
+        let id = format!("{:.0}-{}", when * 1_000_000.0, self.counter);
+        self.learn(context, action, valence);
+        self.recent.push(Episode {
+            id,
+            when: format!("{when:.3}"),
+            context: context.into(),
+            action: action.into(),
+            result: result.chars().take(180).collect(),
+            valence: (valence * 1000.0).round() / 1000.0,
+        });
+        if self.recent.len() > 500 {
+            self.recent.remove(0);
+        }
+    }
     pub fn interaction(&mut self) {
         for ep in &mut self.open {
             ep.attention = true;

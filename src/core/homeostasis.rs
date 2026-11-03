@@ -32,6 +32,7 @@ impl Drives {
             "throw" => 0.35,
             "mischief" => 0.25,
             "caress" => 0.05,
+            "talk" => 0.2,
             _ => 0.0,
         };
         self.stimulation = unit(self.stimulation + amount * scale);
@@ -41,6 +42,7 @@ impl Drives {
             "poke" => 0.15,
             "drag" | "throw" => 0.1,
             "caress" => 0.25,
+            "talk" => 0.2,
             "dismiss" => 0.05,
             _ => 0.0,
         };

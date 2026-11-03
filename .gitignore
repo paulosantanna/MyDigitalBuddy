@@ -1,11 +1,15 @@
 /target/
 /dist/
 /MyDigitalBuddy.exe
+/MyDigitalBuddy.exe.bak
+/MyDigitalBuddy.exe.new
 /memory/
 /memory-*/
 /memoria-*/
 *.tmp
 *.log
+__pycache__/
+*.pyc
 .DS_Store
 Thumbs.db
 .reversa

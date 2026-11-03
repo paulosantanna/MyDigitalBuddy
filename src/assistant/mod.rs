@@ -141,7 +141,7 @@ impl Runtime {
             request.pet,
             JobKind::Reply,
             if settings.cloud_deepseek {
-                "Falando com o DeepSeek na NVIDIA…"
+                "Perguntando a vários modelos na NVIDIA. A primeira resposta fica…"
             } else {
                 "Pensando com o modelo local…"
             },
@@ -285,10 +285,16 @@ impl Runtime {
         let llama = Arc::clone(&self.llama);
         self.status = status.into();
         thread::spawn(move || {
-            let result = if cancel.load(Ordering::Relaxed) {
-                Err("interrompido".into())
-            } else {
-                work(&cancel, &llama)
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                if cancel.load(Ordering::Relaxed) {
+                    Err("interrompido".into())
+                } else {
+                    work(&cancel, &llama)
+                }
+            }));
+            let result = match result {
+                Ok(value) => value,
+                Err(_) => Err("a conversa foi interrompida por um erro interno".into()),
             };
             *worker_slot
                 .lock()

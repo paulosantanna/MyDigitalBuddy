@@ -104,7 +104,7 @@ O runtime não abre a conversa sozinho. Sem permissão, não há cliente HTTP. C
 
 Com **DeepSeek na NVIDIA**, a fala vai para `https://integrate.api.nvidia.com/v1/chat/completions`, modelo `deepseek-ai/deepseek-v4.1-flash`. A chave é lida na hora, de linhas `nvapi-` no arquivo indicado em Permissões, ou de `NVIDIA_API_KEY`. Ela não é gravada, mostrada nem registrada. Esse modo envia a conversa e o texto importado para fora do computador.
 
-Cada perfil guarda a própria conversa em `chat.jsonl`, os trechos importados em `knowledge.jsonl` e as respostas marcadas com Gostei em `reinforced.jsonl`. O Gostei não altera os neurônios. A voz é local: o tom de Sophia é mais agudo, o da Bia é de mulher, Bryan é mais grave e Jorge fica no meio. Um arquivo `voices/<id>.onnx` com o Piper substitui a voz do sistema naquele perfil. Texto, PDF com texto selecionável e áudio (wav, mp3, flac, ogg, m4a; Opus se o ffmpeg estiver instalado) entram na memória daquele perfil. O microfone nasce desligado.
+Cada perfil guarda a própria conversa em `chat.jsonl`, os trechos importados em `knowledge.jsonl` e as respostas marcadas com Gostei em `reinforced.jsonl`. O Gostei não altera os neurônios. Bia, Bryan e Jorge usam a voz do Windows (tom por perfil) ou Piper com `voices/<id>.onnx`. O perfil **Sophia** fala sempre com Thalita via `voices/sophia-speak.py` (ver `sophia.voice.json`); a amostra `sophia-amostra.wav` é a referência da saudação. Texto, PDF com texto selecionável e áudio (wav, mp3, flac, ogg, m4a; Opus se o ffmpeg estiver instalado) entram na memória daquele perfil. O microfone nasce desligado.
 
 ## Privacidade e memória
 

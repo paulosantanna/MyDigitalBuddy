@@ -94,6 +94,8 @@ pub fn buddy(p: &Painter, center: Pos2, angle_deg: f32, scale: f32, engine: &Eng
         Emotion::Content
     } else if engine.asleep {
         Emotion::Sleeping
+    } else if engine.time < engine.expression_until {
+        engine.expression
     } else {
         engine.emotion.current
     };
@@ -113,11 +115,13 @@ pub fn buddy(p: &Painter, center: Pos2, angle_deg: f32, scale: f32, engine: &Eng
     } else {
         1.0
     };
+    let wink = engine.time < engine.wink_until;
     let droop = engine.tone.get("DROWSE") as f32 * 0.45;
     for side in [-1.0_f32, 1.0] {
         let cx = side * 24.0 + engine.gaze.0 as f32 * 4.0;
         let cy = dy + engine.gaze.1 as f32 * 3.0;
-        let eh = (h * blink * (1.0 - droop)).max(3.0);
+        let eye_blink = if wink && side < 0.0 { 0.12 } else { blink };
+        let eh = (h * eye_blink * (1.0 - droop)).max(3.0);
         polygon(
             p,
             rounded(
