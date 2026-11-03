@@ -13,6 +13,7 @@ use crate::{
         rng::Rng,
         unit,
     },
+    dialogue::Dialogue,
     platform::{self, Snapshot},
     senses::{self, ActivityTracker, Senses},
     storage::{self, InstanceLock},
@@ -75,6 +76,7 @@ pub struct Engine {
     pub brain: Brain,
     pub drives: Drives,
     pub memory: Memory,
+    pub dialogue: Dialogue,
     pub conditioning: Conditioning,
     pub emotion: EmotionState,
     pub tone: MotorTone,
@@ -101,6 +103,7 @@ pub struct Engine {
     pub scale: f64,
     pub warnings: Vec<String>,
     pub panic_latched: bool,
+    pub panic_generation: u64,
     pub sign_until: f64,
     pub sign_text: Option<String>,
     pub sign_hidden_until: f64,
@@ -191,6 +194,7 @@ impl Engine {
             brain,
             drives: Drives::default(),
             memory: Memory::default(),
+            dialogue: Dialogue::default(),
             conditioning: Conditioning::default(),
             emotion: EmotionState::default(),
             tone: MotorTone::default(),
@@ -227,6 +231,7 @@ impl Engine {
             scale: 1.0,
             warnings,
             panic_latched: false,
+            panic_generation: 0,
             sign_until: 0.0,
             sign_text: None,
             sign_hidden_until: 0.0,
@@ -361,6 +366,10 @@ impl Engine {
             }
             _ => {}
         }
+        match Dialogue::load(&path) {
+            Ok(dialogue) => self.dialogue = dialogue,
+            Err(error) => self.warning(format!("Conversa ilegível: {error}")),
+        }
     }
     pub fn switch_pet(&mut self, id: &str) -> io::Result<()> {
         self.select_pet(id, true)
@@ -380,6 +389,7 @@ impl Engine {
         self.brain = Brain::new(self.pet.seed, self.rng.0, &self.pet.temperament);
         self.drives = Drives::default();
         self.memory = Memory::default();
+        self.dialogue = Dialogue::default();
         self.conditioning = Conditioning::default();
         self.protest = Protest {
             since: -1e9,
@@ -445,6 +455,7 @@ impl Engine {
         storage::write_json(&path.join("castigo.json"), &self.corner)?;
         storage::write_json(&path.join("preferences.json"), &self.memory.preferences)?;
         storage::write_episodes(&path.join("episodes.jsonl"), &self.memory.recent)?;
+        self.dialogue.save(&path)?;
         self.scene_positions.insert(
             "notebook".into(),
             [self.desk.position.0, self.desk.position.1],
@@ -459,6 +470,7 @@ impl Engine {
     pub fn panic(&mut self) {
         self.settings.active = false;
         self.panic_latched = true;
+        self.panic_generation = self.panic_generation.wrapping_add(1);
         self.corner.release();
         self.corner.escape = None;
         self.things.clear();
@@ -1721,6 +1733,7 @@ impl Engine {
     pub fn wipe_memory(&mut self) -> io::Result<()> {
         self.clear_things();
         self.memory = Memory::default();
+        self.dialogue = Dialogue::default();
         self.drives = Drives::default();
         self.conditioning = Conditioning::default();
         self.brain = Brain::new(self.pet.seed, self.rng.0, &self.pet.temperament);

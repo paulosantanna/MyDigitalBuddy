@@ -12,7 +12,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "--help" || a == "-h") {
         println!(
-            "MyDigitalBuddy 0.1.0\n\nDesktop companion powered by a local 470-neuron LIF network.\n\n  --headless [SECONDS]   Simulate without a display\n  --seed N               Reproducible simulation seed\n  --data-dir PATH        Local memory directory\n  --content-dir PATH     Custom pet definitions and local images\n  --pet ID               Pet definition (bryan / jorge / bia / sophia / custom)\n  --test-mode            Accelerated behavior\n  --direto               Skip onboarding and start in the tray\n  --tray                 Start in the tray; the buddy stays on the desktop\n  --import-legacy PATH   Import a Pestinha memory directory without modifying it\n  --license              Show the license\n"
+            "MyDigitalBuddy 0.1.0\n\nDesktop companion powered by a local sparse LIF network, about 75% larger than the 470-neuron reference.\n\n  --headless [SECONDS]   Simulate without a display\n  --seed N               Reproducible simulation seed\n  --data-dir PATH        Local memory directory\n  --content-dir PATH     Custom pet definitions and local images\n  --pet ID               Pet definition (bryan / jorge / bia / sophia / custom)\n  --test-mode            Accelerated behavior\n  --direto               Skip onboarding and start in the tray\n  --tray                 Start in the tray; the buddy stays on the desktop\n  --import-legacy PATH   Import a Pestinha memory directory without modifying it\n  --license              Show the license\n"
         );
         return Ok(());
     }

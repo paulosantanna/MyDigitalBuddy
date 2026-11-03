@@ -197,3 +197,11 @@ pub const CONNECTIONS: &[(&str, &str, f64, f64)] = &[
     ("CARTAZ", "FRUSTRATION", -0.2, 0.6),
     ("BOREDOM", "FUGIR", 0.15, 0.6),
 ];
+
+/// Reference population before the 75% growth. The live brain scales these counts.
+pub const REFERENCE_NEURONS: usize = 470;
+
+/// Three quarters more neurons: 7/4, with halves rounded upward.
+pub fn grown(count: usize) -> usize {
+    (count * 7 + 2) / 4
+}

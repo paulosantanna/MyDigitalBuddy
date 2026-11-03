@@ -341,3 +341,39 @@ fn a_seated_pet_stays_at_the_notebook_instead_of_falling_to_the_floor() {
     assert_eq!(e.body.x, 580.0);
     assert_eq!(e.body.y, 695.0);
 }
+
+#[test]
+fn each_pet_keeps_its_own_chat() {
+    let d = Temp::new();
+    let mut e = Engine::load(d.0.clone(), 1).unwrap();
+    assert!(e.dialogue.push_user("segredo do bryan"));
+    assert!(e.dialogue.push_assistant("lembrei do bryan"));
+    assert!(e.dialogue.reinforce_last());
+    e.save().unwrap();
+    e.switch_pet("bia").unwrap();
+    assert!(e.dialogue.turns.is_empty());
+    assert!(e.dialogue.push_user("segredo da bia"));
+    e.save().unwrap();
+    e.switch_pet("bryan").unwrap();
+    assert!(
+        e.dialogue
+            .turns
+            .iter()
+            .any(|turn| turn.text.contains("bryan"))
+    );
+    assert!(
+        !e.dialogue
+            .turns
+            .iter()
+            .any(|turn| turn.text.contains("bia"))
+    );
+    assert_eq!(e.dialogue.reinforced.len(), 1);
+    e.switch_pet("bia").unwrap();
+    assert!(
+        e.dialogue
+            .turns
+            .iter()
+            .any(|turn| turn.text.contains("bia"))
+    );
+    assert!(e.dialogue.reinforced.is_empty());
+}

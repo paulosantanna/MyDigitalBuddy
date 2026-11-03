@@ -2,7 +2,9 @@
 mod drawing;
 
 use crate::{
+    assistant::{self, Runtime},
     core::physics::Rect as WorldRect,
+    dialogue::{self, ImportKind, Role},
     engine::{Engine, ThingKind},
     platform::{self, Snapshot},
     storage,
@@ -31,8 +33,8 @@ pub fn run(
     let options = eframe::NativeOptions {
         viewport: ViewportBuilder::default()
             .with_title("MyDigitalBuddy")
-            .with_inner_size([550.0, 740.0])
-            .with_min_inner_size([470.0, 560.0])
+            .with_inner_size([640.0, 800.0])
+            .with_min_inner_size([520.0, 640.0])
             .with_icon(app_icon()),
         renderer: eframe::Renderer::Glow,
         ..Default::default()
@@ -115,6 +117,10 @@ struct Desktop {
     in_tray: bool,
     restore_until: Option<Instant>,
     start_in_tray: bool,
+    draft: String,
+    import_path: String,
+    runtime: Runtime,
+    seen_panic: u64,
 }
 impl Desktop {
     fn new(mut engine: Engine, direct: bool, start_in_tray: bool) -> Self {
@@ -140,6 +146,7 @@ impl Desktop {
         {
             error = Some(message);
         }
+        let seen_panic = engine.panic_generation;
         Self {
             engine,
             worker: SensorWorker::new(),
@@ -165,6 +172,10 @@ impl Desktop {
             in_tray: false,
             restore_until: None,
             start_in_tray,
+            draft: String::new(),
+            import_path: String::new(),
+            runtime: Runtime::new(),
+            seen_panic,
         }
     }
     fn save(&mut self) {
@@ -251,12 +262,13 @@ impl Desktop {
             });
         });
         ui.add_space(10.0);
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             for (id, label) in [
                 (0, "Companheiro"),
                 (1, "Permissões"),
                 (2, "Cérebro"),
                 (3, "Memória"),
+                (4, "Conversa"),
             ] {
                 if ui.selectable_label(self.tab == id, label).clicked() {
                     self.tab = id;
@@ -271,7 +283,8 @@ impl Desktop {
                     0 => self.companion(ui),
                     1 => self.permissions(ui),
                     2 => self.neural(ui),
-                    _ => self.memory(ui),
+                    3 => self.memory(ui),
+                    _ => self.conversation(ui),
                 }
                 if let Some(error) = &self.error {
                     ui.add_space(10.0);
@@ -283,7 +296,7 @@ impl Desktop {
                 ui.add_space(15.0);
                 ui.separator();
                 ui.label(
-                    egui::RichText::new("Tudo acontece neste computador. Nenhum envio à nuvem.")
+                    egui::RichText::new(self.privacy_line())
                         .small()
                         .color(Color32::GRAY),
                 );
@@ -334,10 +347,11 @@ impl Desktop {
                     }
                 });
         });
-        if chosen != old
-            && let Err(e) = self.engine.switch_pet(&chosen)
-        {
-            self.error = Some(e.to_string());
+        if chosen != old {
+            match self.engine.switch_pet(&chosen) {
+                Ok(()) => self.runtime.cancel(),
+                Err(error) => self.error = Some(error.to_string()),
+            }
         }
         ui.horizontal_wrapped(|ui| {
             if ui
@@ -446,7 +460,32 @@ impl Desktop {
         ui.label("As opções são salvas ao mudar.");
         ui.add_space(8.0);
         let before = serde_json::to_string(&self.engine.settings).unwrap_or_default();
+        let cloud_before = self.engine.settings.cloud_deepseek;
         let s = &mut self.engine.settings;
+        ui.label("Conversa");
+        ui.checkbox(&mut s.assistant, "Assistente local (llama.cpp, sem Ollama)");
+        ui.checkbox(&mut s.microphone, "Microfone");
+        ui.checkbox(&mut s.cloud_deepseek, "DeepSeek na NVIDIA");
+        if s.cloud_deepseek {
+            ui.colored_label(
+                Color32::YELLOW,
+                "A conversa e os textos importados são enviados à NVIDIA.",
+            );
+        }
+        ui.label("O Gostei guarda a frase. A rede pulsada não muda.");
+        ui.collapsing("Arquivos do assistente", |ui| {
+            ui.label("Vazio procura ao lado do programa. Qwen2.5-7B-Instruct Q4_K_M é o GGUF recomendado.");
+            ui.label("Modelo GGUF");
+            ui.text_edit_singleline(&mut s.model_path);
+            ui.label("llama-server");
+            ui.text_edit_singleline(&mut s.llama_server);
+            ui.label("whisper-cli");
+            ui.text_edit_singleline(&mut s.whisper_cli);
+            ui.label("Modelo do Whisper");
+            ui.text_edit_singleline(&mut s.whisper_model);
+            ui.label("Arquivo da chave NVIDIA. Só linhas nvapi- são lidas.");
+            ui.text_edit_singleline(&mut s.nvidia_key_file);
+        });
         ui.collapsing("Travessuras", |ui| {
             ui.checkbox(&mut s.mischief, "Permitir travessuras");
             ui.add_enabled_ui(s.mischief, |ui| {
@@ -475,6 +514,15 @@ impl Desktop {
             if !self.engine.settings.drag {
                 self.engine.body.held = false;
                 self.engine.senses.dragging = false;
+            }
+            if self.engine.settings.cloud_deepseek && !cloud_before {
+                self.runtime.status = match assistant::key_status(&self.engine.settings) {
+                    Ok(()) => "chave NVIDIA disponível. A conversa sai deste computador.".into(),
+                    Err(error) => error,
+                };
+            }
+            if !self.engine.settings.assistant || self.engine.settings.cloud_deepseek {
+                self.runtime.stop_local();
             }
             self.save();
         }
@@ -559,7 +607,7 @@ impl Desktop {
                 });
         });
         ui.add_space(8.0);
-        ui.label("A rede é uma simulação pequena, com topologia desenhada à mão. Não é uma LLM e não precisa de GPU.");
+        ui.label("A rede é uma simulação pequena, com topologia desenhada à mão. A aba Conversa usa um modelo à parte e não altera estes neurônios.");
     }
     fn memory(&mut self, ui: &mut egui::Ui) {
         ui.heading("Memória local");
@@ -608,6 +656,301 @@ impl Desktop {
         ui.monospace("mydigitalbuddy --data-dir NOVA_PASTA --import-legacy CAMINHO");
         ui.label("Os originais são preservados. A importação exige destino sem memória existente.");
     }
+    fn privacy_line(&self) -> &'static str {
+        if self.engine.settings.cloud_deepseek {
+            "DeepSeek na NVIDIA está ligado. A conversa e os textos importados saem deste computador."
+        } else if self.engine.settings.assistant {
+            "Assistente local. A conversa fica neste computador."
+        } else {
+            "Assistente de conversa desligado. O pet continua só com o cérebro local."
+        }
+    }
+    fn conversation(&mut self, ui: &mut egui::Ui) {
+        let voice = dialogue::prosody(&self.engine.settings.pet);
+        ui.heading(format!("Conversa com {}", self.engine.pet.name));
+        ui.label(format!(
+            "{} · {}",
+            if self.engine.settings.cloud_deepseek {
+                "DeepSeek 4.1 na NVIDIA"
+            } else if self.engine.settings.assistant {
+                "modelo local"
+            } else {
+                "conversa desligada"
+            },
+            voice.label
+        ));
+        if !self.runtime.status.is_empty() {
+            ui.colored_label(Color32::from_rgb(250, 204, 21), &self.runtime.status);
+        }
+        ui.add_space(6.0);
+        let turns = &self.engine.dialogue.turns;
+        let start = turns.len().saturating_sub(80);
+        egui::ScrollArea::vertical()
+            .id_salt("chat-log")
+            .max_height(260.0)
+            .show(ui, |ui| {
+                if turns.is_empty() {
+                    ui.label("Ainda não há mensagens neste perfil.");
+                }
+                for turn in &turns[start..] {
+                    let (who, color) = match turn.role {
+                        Role::User => ("Você", Color32::LIGHT_GRAY),
+                        Role::Assistant => (self.engine.pet.name.as_str(), ACCENT),
+                    };
+                    ui.colored_label(color, who);
+                    ui.label(&turn.text);
+                    ui.add_space(4.0);
+                }
+            });
+        ui.add_space(6.0);
+        ui.add(
+            egui::TextEdit::multiline(&mut self.draft)
+                .desired_rows(3)
+                .hint_text("Escreva em português…")
+                .desired_width(f32::INFINITY),
+        );
+        ui.horizontal_wrapped(|ui| {
+            let can_send = !self.runtime.busy() && !self.draft.trim().is_empty();
+            if ui
+                .add_enabled(can_send, egui::Button::new("Enviar"))
+                .clicked()
+            {
+                self.send_draft();
+            }
+            if ui.button("Gostei").clicked() {
+                if self.engine.dialogue.reinforce_last() {
+                    self.save();
+                    self.runtime.status = "guardei esta resposta para a próxima conversa".into();
+                } else {
+                    self.runtime.status = "ainda não há uma resposta para guardar".into();
+                }
+            }
+            if ui.button("Ouvir").clicked() {
+                self.speak_last();
+            }
+        });
+        let mic = ui.add_enabled(
+            self.engine.settings.microphone && !self.runtime.busy(),
+            egui::Button::new(if self.runtime.recording() {
+                "Ouvindo… solte para enviar"
+            } else {
+                "Segure para falar"
+            }),
+        );
+        if self.engine.settings.microphone {
+            let holding = mic.is_pointer_button_down_on();
+            if holding && !self.runtime.recording() && !self.runtime.busy() {
+                if let Err(error) = self.runtime.start_mic() {
+                    self.runtime.status = error;
+                }
+            } else if !holding && self.runtime.recording() {
+                self.runtime.finish_mic(self.turn_request());
+            }
+        } else {
+            ui.label(
+                egui::RichText::new("O microfone nasce desligado. Ligue em Permissões.")
+                    .small()
+                    .color(Color32::GRAY),
+            );
+        }
+        ui.add_space(8.0);
+        ui.label("Importar texto, PDF ou áudio para este perfil");
+        ui.add(
+            egui::TextEdit::singleline(&mut self.import_path)
+                .desired_width(f32::INFINITY)
+                .hint_text("Caminho do arquivo"),
+        );
+        ui.horizontal_wrapped(|ui| {
+            if ui.button("Escolher arquivo").clicked()
+                && let Some(path) = assistant::choose_import()
+            {
+                self.import_path = path.display().to_string();
+                self.import_current();
+            }
+            if ui.button("Importar").clicked() {
+                self.import_current();
+            }
+        });
+        ui.label(
+            egui::RichText::new("Você também pode soltar o arquivo nesta aba.")
+                .small()
+                .color(Color32::GRAY),
+        );
+        let dropped: Vec<_> = ui.ctx().input(|input| {
+            input
+                .raw
+                .dropped_files
+                .iter()
+                .filter_map(|file| {
+                    let path = file.path();
+                    path.is_file().then(|| path.to_path_buf())
+                })
+                .collect()
+        });
+        for path in dropped {
+            self.import_path = path.display().to_string();
+            self.import_current();
+        }
+    }
+    fn send_draft(&mut self) {
+        let text = self.draft.trim().to_string();
+        if text.is_empty() || self.runtime.busy() {
+            return;
+        }
+        if !self.engine.settings.assistant && !self.engine.settings.cloud_deepseek {
+            self.runtime.status =
+                "ligue o assistente local ou o DeepSeek na NVIDIA, em Permissões".into();
+            return;
+        }
+        if !self.engine.dialogue.push_user(&text) {
+            self.runtime.status = "não consegui guardar essa frase".into();
+            return;
+        }
+        self.draft.clear();
+        self.ask();
+    }
+    fn ask(&mut self) {
+        if !self.engine.settings.active {
+            self.runtime.status = "o companheiro está desativado".into();
+            return;
+        }
+        let temperament = self
+            .engine
+            .pet
+            .temperament
+            .iter()
+            .take(12)
+            .map(|(name, value)| format!("{name} {value:.1}"))
+            .collect::<Vec<_>>()
+            .join("; ");
+        let messages = self.engine.dialogue.messages(
+            &self.engine.settings.pet,
+            &self.engine.pet.name,
+            self.engine.emotion.current.name(),
+            &temperament,
+        );
+        self.save();
+        let mut request = self.turn_request();
+        request.messages = messages;
+        self.runtime.start_reply(request);
+    }
+    fn speak_last(&mut self) {
+        let Some(text) = self
+            .engine
+            .dialogue
+            .turns
+            .iter()
+            .rev()
+            .find(|turn| turn.role == Role::Assistant)
+            .map(|turn| turn.text.clone())
+        else {
+            self.runtime.status = "ainda não há uma resposta para ouvir".into();
+            return;
+        };
+        self.runtime.speak(
+            text,
+            self.engine.settings.pet.clone(),
+            assistant::roots(&self.engine.content_root, &self.engine.root),
+        );
+    }
+    fn import_current(&mut self) {
+        let path = std::path::PathBuf::from(self.import_path.trim());
+        if self.import_path.trim().is_empty() {
+            self.runtime.status = "informe o caminho do arquivo".into();
+            return;
+        }
+        if !path.is_file() {
+            self.runtime.status = "arquivo não encontrado".into();
+            return;
+        }
+        match dialogue::classify_import(&path) {
+            Ok(ImportKind::Audio) => {
+                if self.runtime.busy() {
+                    self.runtime.status = "ainda estou ocupado".into();
+                    return;
+                }
+                self.runtime.start_knowledge(
+                    self.turn_request(),
+                    dialogue::source_label(&path),
+                    path,
+                );
+            }
+            Ok(_) => match assistant::import_document(&path) {
+                Ok((source, text)) => match self.engine.dialogue.import_text(&source, &text) {
+                    Ok(()) => {
+                        self.runtime.status = format!("guardei {source}");
+                        self.save();
+                    }
+                    Err(error) => self.runtime.status = error,
+                },
+                Err(error) => self.runtime.status = error,
+            },
+            Err(error) => self.runtime.status = error,
+        }
+    }
+    fn turn_request(&self) -> assistant::TurnRequest {
+        assistant::TurnRequest {
+            pet: self.engine.settings.pet.clone(),
+            messages: Vec::new(),
+            settings: self.engine.settings.clone(),
+            content_root: self.engine.content_root.clone(),
+            data_root: self.engine.root.clone(),
+        }
+    }
+    fn apply_assistant(&mut self, event: assistant::Event) {
+        match event {
+            assistant::Event::Reply { pet, text } => {
+                if pet != self.engine.settings.pet {
+                    self.runtime.status = "a resposta chegou depois da troca de personagem".into();
+                    return;
+                }
+                match text {
+                    Ok(answer) => {
+                        self.engine.dialogue.push_assistant(&answer);
+                        self.save();
+                    }
+                    Err(error) => self.runtime.status = error,
+                }
+            }
+            assistant::Event::Heard { pet, text } => {
+                if pet != self.engine.settings.pet {
+                    return;
+                }
+                match text {
+                    Ok(heard) => {
+                        if self.engine.dialogue.push_user(&heard) {
+                            self.ask();
+                        }
+                    }
+                    Err(error) => self.runtime.status = error,
+                }
+            }
+            assistant::Event::Knowledge { pet, source, text } => {
+                if pet != self.engine.settings.pet {
+                    return;
+                }
+                match text {
+                    Ok(body) => match self.engine.dialogue.import_text(&source, &body) {
+                        Ok(()) => {
+                            self.runtime.status = format!("guardei {source}");
+                            self.save();
+                        }
+                        Err(error) => self.runtime.status = error,
+                    },
+                    Err(error) => self.runtime.status = error,
+                }
+            }
+        }
+    }
+    fn poll_assistant(&mut self) {
+        if self.engine.panic_generation != self.seen_panic {
+            self.seen_panic = self.engine.panic_generation;
+            self.runtime.halt();
+        }
+        if let Some(event) = self.runtime.poll() {
+            self.apply_assistant(event);
+        }
+    }
     fn onboarding(&mut self, ui: &mut egui::Ui) {
         const PAGES: &[(&str, &str)] = &[
             (
@@ -620,7 +963,7 @@ impl Desktop {
             ),
             (
                 "Seu computador, sua privacidade.",
-                "Leio apenas nome do programa em primeiro plano, tempo ocioso, posição do cursor e geometria das janelas. Não leio títulos, conteúdo, conversas nem teclas digitadas. Não envio dados à internet.",
+                "Leio apenas nome do programa em primeiro plano, tempo ocioso, posição do cursor e geometria das janelas. Não leio títulos, conteúdo, conversas nem teclas digitadas. A conversa da aba Conversa fica neste computador, a menos que você ligue o DeepSeek na NVIDIA.",
             ),
             (
                 "As escolhas são suas.",
@@ -1387,6 +1730,7 @@ impl eframe::App for Desktop {
         } else if self.input.panic {
             self.engine.panic();
         }
+        self.poll_assistant();
         if self.last_save.elapsed() >= Duration::from_secs(30) {
             self.save();
             self.last_save = now;

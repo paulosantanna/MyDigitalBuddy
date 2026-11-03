@@ -26,7 +26,7 @@ Os registros resumidos estão em `ui-smoke.json` e `headless-smoke.json`. As cap
 - 7 testes de caracterização: limites de classificação emocional, homeostase, trajetórias físicas, emoção temporal com prioridades, motores, condicionamento e protesto.
 - 17 testes de integração: pânico e reinício, pausa/fullscreen, lock de escritor, isolamento entre pets, IDs, dados inválidos, punição de um episódio sem duplicação, seleção limitada por permissões, importação válida/inválida, plataformas, bolinha, sequência aleatória de interações, escrita atômica, definições personalizadas, seleção para importação e posição do pet no notebook.
 
-O oráculo neural contém um modelo original de 470 neurônios e verifica 150 passos de 1ms com entradas fixas. Tolerância absoluta: 1e-10 nos estados contínuos e igualdade em disparos/refratários. Os demais oráculos numéricos usam 1e-9. Não se está comparando streams aleatórios nativos dos dois runtimes.
+O teste neural constrói a rede em execução, 75% maior que a referência de 470, e confere 150 passos com ruído fixo: o estado permanece finito e duas execuções com a mesma semente coincidem. As sinapses esperadas crescem mais que o número de neurônios, porque a densidade de cada projeção foi mantida. Tolerância dos demais oráculos numéricos: 1e-9. Não se está comparando streams aleatórios nativos dos dois runtimes.
 
 ## Execução nativa no Windows
 

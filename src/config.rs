@@ -37,6 +37,32 @@ pub struct Settings {
     pub fireworks: bool,
     pub onboarding_done: bool,
     pub launch_at_startup: bool,
+    /// Local llama.cpp chat. Off until the person turns it on.
+    pub assistant: bool,
+    /// Push-to-talk. Off until the person turns it on.
+    pub microphone: bool,
+    /// Hosted DeepSeek on NVIDIA. Off until the person turns it on.
+    pub cloud_deepseek: bool,
+    /// Empty means look for a GGUF beside the program.
+    pub model_path: String,
+    /// Empty means look for llama-server beside the program. Never Ollama.
+    pub llama_server: String,
+    pub whisper_cli: String,
+    pub whisper_model: String,
+    /// File that may hold other secrets. Only lines starting with `nvapi-` are read.
+    #[serde(default = "default_nvidia_key_file")]
+    pub nvidia_key_file: String,
+}
+
+fn default_nvidia_key_file() -> String {
+    #[cfg(windows)]
+    {
+        "E:\\cookier\\cookier".into()
+    }
+    #[cfg(not(windows))]
+    {
+        String::new()
+    }
 }
 
 impl Default for Settings {
@@ -60,6 +86,14 @@ impl Default for Settings {
             fireworks: true,
             onboarding_done: false,
             launch_at_startup: false,
+            assistant: false,
+            microphone: false,
+            cloud_deepseek: false,
+            model_path: String::new(),
+            llama_server: String::new(),
+            whisper_cli: String::new(),
+            whisper_model: String::new(),
+            nvidia_key_file: default_nvidia_key_file(),
         }
     }
 }

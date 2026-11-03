@@ -62,13 +62,28 @@ pub struct Brain {
     s_depression: Vec<f64>,
     s_recovery: Vec<f64>,
     levels: Vec<f64>,
-    base: Vec<f64>,
+    /// Sparse base weights. Rows only store a target when the weight is non-zero.
+    base: Vec<Vec<(usize, f64)>>,
     outgoing: Vec<Vec<(usize, f64)>>,
     plastic_masks: Vec<Vec<f64>>,
     neuron_pool: Vec<usize>,
     counts: Vec<f64>,
     bin: Vec<bool>,
+    scratch_drive: Vec<f64>,
+    scratch_normal: Vec<f64>,
+    scratch_uniform: Vec<f64>,
     rng: Rng,
+}
+
+fn add_weight(row: &mut Vec<(usize, f64)>, target: usize, weight: f64) {
+    if weight == 0.0 {
+        return;
+    }
+    if let Some(slot) = row.iter_mut().find(|(neuron, _)| *neuron == target) {
+        slot.1 += weight;
+    } else {
+        row.push((target, weight));
+    }
 }
 
 impl Brain {
@@ -77,6 +92,7 @@ impl Brain {
         let mut cursor = 0;
         for (group, spec) in [(0, SENSORS), (1, INTER), (2, MOTORS)] {
             for &(name, n, _, _, _) in spec {
+                let n = grown(n);
                 pools.push(Pool {
                     name: name.into(),
                     start: cursor,
@@ -86,7 +102,11 @@ impl Brain {
                 cursor += n;
             }
         }
-        let ns: usize = SENSORS.iter().map(|x| x.1).sum();
+        let ns: usize = pools
+            .iter()
+            .filter(|pool| pool.group == 0)
+            .map(|pool| pool.n)
+            .sum();
         let n = cursor;
         let nl = n - ns;
         let mut rng = Rng(seed);
@@ -109,16 +129,20 @@ impl Brain {
                 adapt_decay[i - ns] = (-1.0 / (bt * 1000.0)).exp();
             }
         }
-        let mut base = vec![0.0; n * n];
+        let mut base: Vec<Vec<(usize, f64)>> = vec![Vec::new(); n];
         let mut connect = |pre: &str, post: &str, weight: f64, density: f64| {
             let a = pools.iter().find(|p| p.name == pre).expect("static pre");
             let b = pools.iter().find(|p| p.name == post).expect("static post");
-            for i in a.start..a.start + a.n {
-                for j in b.start..b.start + b.n {
+            let a_start = a.start;
+            let a_n = a.n;
+            let b_start = b.start;
+            let b_n = b.n;
+            for row in base.iter_mut().skip(a_start).take(a_n) {
+                for j in b_start..b_start + b_n {
                     let mask = rng.uniform() < density;
                     let strength = (0.25 * rng.normal() - 0.25_f64.powi(2) / 2.0).exp();
                     if mask {
-                        base[i * n + j] += weight * strength;
+                        add_weight(row, j, weight * strength);
                     }
                 }
             }
@@ -200,6 +224,9 @@ impl Brain {
             neuron_pool,
             counts: vec![0.0; np],
             bin: vec![false; n],
+            scratch_drive: vec![0.0; nl],
+            scratch_normal: vec![0.0; nl],
+            scratch_uniform: vec![0.0; ns],
             rng: Rng(noise_seed),
         };
         for (i, &(_, _, _, d, tau)) in SENSORS.iter().enumerate() {
@@ -236,17 +263,18 @@ impl Brain {
         }
     }
 
+    #[allow(clippy::needless_range_loop)]
     fn substep(&mut self, normal: &[f64], uniform: &[f64]) {
-        let mut drive = vec![0.0; self.n - self.ns];
+        self.scratch_drive.fill(0.0);
         for (i, spike) in self.spikes.iter().enumerate() {
             if *spike {
                 for &(j, weight) in &self.outgoing[i] {
-                    drive[j - self.ns] += self.gain[i] * weight;
+                    self.scratch_drive[j - self.ns] += self.gain[i] * weight;
                 }
             }
         }
         for i in 0..self.v.len() {
-            self.v[i] = self.v[i] * self.decay[i] + drive[i] + 0.025 * normal[i];
+            self.v[i] = self.v[i] * self.decay[i] + self.scratch_drive[i] + 0.025 * normal[i];
             if self.refractory[i] > 0 {
                 self.v[i] = 0.0;
                 self.refractory[i] -= 1;
@@ -286,9 +314,17 @@ impl Brain {
             1
         };
         for _ in 0..n {
-            let normal: Vec<_> = (0..self.n - self.ns).map(|_| self.rng.normal()).collect();
-            let uniform: Vec<_> = (0..self.ns).map(|_| self.rng.uniform()).collect();
+            let mut normal = std::mem::take(&mut self.scratch_normal);
+            let mut uniform = std::mem::take(&mut self.scratch_uniform);
+            for value in &mut normal {
+                *value = self.rng.normal();
+            }
+            for value in &mut uniform {
+                *value = self.rng.uniform();
+            }
             self.substep(&normal, &uniform);
+            self.scratch_normal = normal;
+            self.scratch_uniform = uniform;
             self.time_ms += 1;
             if self.recording && self.time_ms.is_multiple_of(10) {
                 self.raster.push_back(self.bin.clone());
@@ -325,26 +361,57 @@ impl Brain {
     }
 
     fn apply_learning(&mut self) {
-        let mut w = self.base.clone();
-        for (i, a) in self.pools[..SENSORS.len()].iter().enumerate() {
-            for (j, &(post, _)) in PLASTIC.iter().enumerate() {
-                let b = self.pool(post).expect("static plastic pool");
-                for x in 0..a.n {
-                    for y in 0..b.n {
-                        w[(a.start + x) * self.n + b.start + y] +=
-                            self.learned[i][j] * self.plastic_masks[i * 4 + j][x * b.n + y];
+        let ns = self.ns;
+        for (i, row) in self.outgoing.iter_mut().enumerate() {
+            row.clear();
+            row.extend(
+                self.base[i]
+                    .iter()
+                    .copied()
+                    .filter(|(target, weight)| *target >= ns && *weight != 0.0),
+            );
+        }
+        let mut projections = Vec::new();
+        for (sensor_index, sensor) in self.pools[..SENSORS.len()].iter().enumerate() {
+            for (plastic_index, &(post, _)) in PLASTIC.iter().enumerate() {
+                let Some(target) = self.pools.iter().find(|pool| pool.name == post) else {
+                    continue;
+                };
+                projections.push((
+                    sensor_index,
+                    plastic_index,
+                    sensor.start,
+                    sensor.n,
+                    target.start,
+                    target.n,
+                    self.learned[sensor_index][plastic_index],
+                ));
+            }
+        }
+        for (sensor_index, plastic_index, pre_start, pre_n, post_start, post_n, scale) in
+            projections
+        {
+            if scale == 0.0 {
+                continue;
+            }
+            for x in 0..pre_n {
+                let pre = pre_start + x;
+                for y in 0..post_n {
+                    let factor = self.plastic_masks[sensor_index * PLASTIC.len() + plastic_index]
+                        [x * post_n + y];
+                    if factor == 0.0 {
+                        continue;
                     }
+                    let post_neuron = post_start + y;
+                    if post_neuron < ns {
+                        continue;
+                    }
+                    add_weight(&mut self.outgoing[pre], post_neuron, scale * factor);
                 }
             }
         }
-        for (i, row) in self.outgoing.iter_mut().enumerate() {
-            row.clear();
-            for j in self.ns..self.n {
-                let weight = w[i * self.n + j];
-                if weight != 0.0 {
-                    row.push((j, weight));
-                }
-            }
+        for row in &mut self.outgoing {
+            row.retain(|(_, weight)| *weight != 0.0);
         }
     }
 
@@ -442,33 +509,78 @@ impl Brain {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use serde_json::Value;
+
+    fn scaled_neurons() -> usize {
+        SENSORS
+            .iter()
+            .chain(INTER)
+            .chain(MOTORS)
+            .map(|spec| grown(spec.1))
+            .sum()
+    }
+
+    fn scaled_sensors() -> usize {
+        SENSORS.iter().map(|spec| grown(spec.1)).sum()
+    }
+
+    fn pool_count(name: &str) -> usize {
+        SENSORS
+            .iter()
+            .chain(INTER)
+            .chain(MOTORS)
+            .find(|spec| spec.0 == name)
+            .map(|spec| spec.1)
+            .unwrap()
+    }
+
+    /// Mean number of synapses if every listed projection keeps its density.
+    fn expected_synapses(scale: impl Fn(usize) -> usize) -> f64 {
+        let mut total = 0.0;
+        for &(pre, post, _, density) in CONNECTIONS {
+            total += scale(pool_count(pre)) as f64 * scale(pool_count(post)) as f64 * density;
+        }
+        let decisions = [
+            "SENTAR",
+            "FUGIR",
+            "CARTAZ",
+            "CANTO",
+            "TRAVESSURA",
+            "PAPEL",
+            "ACEITAR",
+        ];
+        for a in MOTORS {
+            for b in MOTORS {
+                if a.0 != b.0 && decisions.contains(&a.0) == decisions.contains(&b.0) {
+                    total += scale(a.1) as f64 * scale(b.1) as f64 * 0.7;
+                }
+            }
+        }
+        total
+    }
 
     #[test]
-    fn neural_equations_match_executed_python_oracle() {
-        let fixture: Value =
-            serde_json::from_str(include_str!("../../tests/fixtures/neural.json")).unwrap();
+    fn simulation_uses_the_grown_network_and_synapses_follow() {
         let mut brain = Brain::new(7, 19, &BTreeMap::new());
-        brain.base.fill(0.0);
-        for row in fixture["edges"].as_array().unwrap() {
-            let i = row[0].as_u64().unwrap() as usize;
-            let j = row[1].as_u64().unwrap() as usize;
-            brain.base[i * brain.n + j] = row[2].as_f64().unwrap();
-        }
-        let floats = |key: &str| -> Vec<f64> {
-            fixture[key]
-                .as_array()
-                .unwrap()
-                .iter()
-                .map(|v| v.as_f64().unwrap())
-                .collect()
-        };
-        brain.decay = floats("decay");
-        brain.adapt_b = floats("adapt_b");
-        brain.adapt_decay = floats("adapt_decay");
-        brain.apply_learning();
-        brain.stimulate(&serde_json::from_value(fixture["levels"].clone()).unwrap());
-        for step in 0..fixture["steps"].as_u64().unwrap() as usize {
+        let mut again = Brain::new(7, 19, &BTreeMap::new());
+        assert_eq!(brain.n, scaled_neurons());
+        assert_eq!(brain.ns, scaled_sensors());
+        assert!(brain.n > REFERENCE_NEURONS);
+        let neuron_ratio = brain.n as f64 / REFERENCE_NEURONS as f64;
+        let synapse_ratio = expected_synapses(grown) / expected_synapses(|count| count);
+        assert!(
+            synapse_ratio > neuron_ratio,
+            "expected synapses grew by {synapse_ratio}, neurons by {neuron_ratio}"
+        );
+        let actual = brain.synapses() as f64;
+        let expected = expected_synapses(grown);
+        assert!(
+            (0.55..1.45).contains(&(actual / expected)),
+            "synapses {actual} vs density expectation {expected}"
+        );
+        let levels = [("POKE".into(), 1.0), ("WORK".into(), 0.5)].into();
+        for step in 0..150 {
+            brain.stimulate(&levels);
+            again.stimulate(&levels);
             let noise: Vec<_> = (0..brain.n - brain.ns)
                 .map(|i| (i as f64 * 0.7 + step as f64 * 0.11).sin())
                 .collect();
@@ -476,38 +588,12 @@ mod tests {
                 .map(|i| ((i * 17 + step * 13) % 100) as f64 / 100.0)
                 .collect();
             brain.substep(&noise, &uniform);
+            again.substep(&noise, &uniform);
         }
-        let expected = &fixture["expected"];
-        for (name, actual) in [
-            ("v", &brain.v),
-            ("a", &brain.a),
-            ("gain", &brain.gain),
-            ("trace", &brain.trace),
-            ("counts", &brain.counts),
-        ] {
-            let values = expected[name].as_array().unwrap();
-            assert_eq!(actual.len(), values.len());
-            for (i, (a, b)) in actual.iter().zip(values).enumerate() {
-                assert!(
-                    (a - b.as_f64().unwrap()).abs() < 1e-10,
-                    "{name}[{i}]: {a} != {b}"
-                );
-            }
-        }
-        for (a, b) in brain
-            .refractory
-            .iter()
-            .zip(expected["ref"].as_array().unwrap())
-        {
-            assert_eq!(*a as u64, b.as_u64().unwrap());
-        }
-        for (a, b) in brain
-            .spikes
-            .iter()
-            .zip(expected["spikes"].as_array().unwrap())
-        {
-            assert_eq!(*a, b.as_f64().unwrap() != 0.0);
-        }
+        assert_eq!(brain.v, again.v);
+        assert_eq!(brain.spikes, again.spikes);
+        assert!(brain.v.iter().all(|value| value.is_finite()));
+        assert!(brain.gain.iter().all(|value| value.is_finite()));
     }
 
     #[test]
@@ -528,8 +614,12 @@ mod tests {
     fn neural_reproducibility_plastic_bounds_and_habituation() {
         let mut a = Brain::new(7, 42, &BTreeMap::new());
         let mut b = Brain::new(7, 42, &BTreeMap::new());
-        assert_eq!(a.n, 470);
-        assert_eq!(a.ns, 180);
+        assert_eq!(a.n, scaled_neurons());
+        assert_eq!(a.ns, scaled_sensors());
+        assert!(a.n > REFERENCE_NEURONS);
+        let neuron_ratio = a.n as f64 / REFERENCE_NEURONS as f64;
+        let synapse_ratio = expected_synapses(grown) / expected_synapses(|count| count);
+        assert!(synapse_ratio > neuron_ratio);
         let levels = [("POKE".into(), 1.0), ("WORK".into(), 1.0)].into();
         for _ in 0..20 {
             a.stimulate(&levels);

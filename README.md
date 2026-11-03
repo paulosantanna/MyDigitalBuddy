@@ -1,8 +1,8 @@
 # MyDigitalBuddy
 
-Um companheiro de desktop local, reimplementado em **Rust**, com rede neural pulsada de 470 neurônios, emoções, personalidade, memória e física 2D.
+Um companheiro de desktop local, reimplementado em **Rust**, com rede neural pulsada esparsa (cerca de 75% maior que a referência de 470 neurônios), emoções, personalidade, memória e física 2D.
 
-Este é um repositório novo, com implementação Rust; não exige Python, NumPy, Qt, servidor, LLM ou GPU de IA.
+Este é um repositório novo, com implementação Rust. O pet não exige Python, NumPy, Qt nem GPU. A conversa é opcional e fica desligada até você permitir: um modelo local pelo llama.cpp, ou o DeepSeek 4.1 na NVIDIA.
 
 **Versão inicial de migração.** Os testes numéricos não demonstram paridade completa do aplicativo. A interface foi reescrita e as integrações nativas precisam de validação no desktop de destino. Veja [o relatório de validação](docs/VALIDATION.md) e [as diferenças](docs/MIGRATION.md).
 
@@ -10,7 +10,7 @@ Este é um repositório novo, com implementação Rust; não exige Python, NumPy
 
 ## O que faz
 
-- **Cérebro LIF:** 30 canais sensoriais, 15 motores, habituação, adaptação, inibição e sinapses plásticas.
+- **Cérebro LIF:** 845 neurônios esparsos, 30 canais sensoriais, 15 motores, habituação, adaptação, inibição e sinapses plásticas.
 - **Personalidade:** Bryan, Jorge, Bia, Sophia e definições personalizadas em JSON, com memória separada.
 - **Interação:** cutucada, carinho por movimento do cursor, arraste, arremesso e giro.
 - **Corpo:** gravidade, quique, rotação e pouso nas janelas do desktop.
@@ -18,6 +18,14 @@ Este é um repositório novo, com implementação Rust; não exige Python, NumPy
 - **Comportamento:** notebook, pedidos de trabalho, sono, protestos, cantinho, perdão e memória de fugas.
 - **Travessuras:** bilhetes e imagens locais opcionais, escolhidos por aprendizado contextual.
 - **Controle:** central minimizável, menu no pet, permissões, monitor neural, painel de protesto e pânico persistente.
+- **Conversa opcional:** desligada até você permitir. Não altera a rede pulsada.
+
+## Evolução
+
+1. **Companheiro.** O pet nasce em Rust, com física 2D, emoções, memória e a rede de referência de 470 neurônios. Bryan e Jorge vêm embutidos.
+2. **Presença no desktop.** Entram Bia e Sophia. A central passa a ir para a bandeja ao minimizar ou fechar, e o pet continua. Abrir o programa de novo traz a janela que já está viva. No Windows, dá para iniciar com o sistema, já na bandeja. O ícone do executável e da bandeja é o rosto da Sophia.
+3. **Rede maior.** Cada grupo cresce cerca de 75%, com arredondamento para cima, e a simulação fica com 845 neurônios. Os pesos continuam numa lista esparsa. Uma habituação salva no tamanho antigo não é misturada com a rede nova.
+4. **Fala.** A aba Conversa fica desligada até a permissão. O modo local sobe o llama.cpp só em `127.0.0.1`. O modo DeepSeek na NVIDIA, também desligado por padrão, é o único que envia a conversa para fora. Cada perfil guarda o próprio histórico, os arquivos importados e as respostas marcadas com Gostei. A voz local muda com o perfil. O pânico corta a conversa, o microfone e a voz.
 
 ## Compilar e executar
 
@@ -58,6 +66,7 @@ O binário fica em `target/release/mydigitalbuddy` ou `mydigitalbuddy.exe`. As d
 | Arrastar e soltar | Carregar ou arremessar |
 | Rodinha sobre o pet | Girar |
 | Botão direito no pet | Menu de comandos |
+| Aba Conversa | Falar com o perfil, importar arquivo e ouvir a voz |
 | Arrastar notebook ou placa | Reposicionar objeto |
 | Soltar o pet diante da placa | Cantinho do castigo |
 | Clicar em bilhete ou imagem | Dispensar objeto |
@@ -91,9 +100,15 @@ cargo run --release --locked -- --data-dir ./memoria-importada \
 
 A importação aceita a estrutura `memory/pets/<id>/` e o formato antigo de arquivos soltos. O destino do personagem deve estar vazio. Todos os candidatos são validados antes da escrita. A importação não altera nem exclui a origem; uma mudança no gerador aleatório impede equivalência numérica entre trajetórias nativas antigas e novas.
 
+O runtime não abre a conversa sozinho. Sem permissão, não há cliente HTTP. Com **Assistente local**, o programa sobe o `llama-server` do llama.cpp só em `127.0.0.1` e usa um GGUF que você coloca ao lado do executável. Ollama não é usado. O arquivo recomendado nesta máquina é Qwen2.5-7B-Instruct Q4_K_M, por exemplo `models/qwen.gguf`. O checkpoint grande em disco não é carregado.
+
+Com **DeepSeek na NVIDIA**, a fala vai para `https://integrate.api.nvidia.com/v1/chat/completions`, modelo `deepseek-ai/deepseek-v4.1-flash`. A chave é lida na hora, de linhas `nvapi-` no arquivo indicado em Permissões, ou de `NVIDIA_API_KEY`. Ela não é gravada, mostrada nem registrada. Esse modo envia a conversa e o texto importado para fora do computador.
+
+Cada perfil guarda a própria conversa em `chat.jsonl`, os trechos importados em `knowledge.jsonl` e as respostas marcadas com Gostei em `reinforced.jsonl`. O Gostei não altera os neurônios. A voz é local: o tom de Sophia é mais agudo, o da Bia é de mulher, Bryan é mais grave e Jorge fica no meio. Um arquivo `voices/<id>.onnx` com o Piper substitui a voz do sistema naquele perfil. Texto, PDF com texto selecionável e áudio (wav, mp3, flac, ogg, m4a; Opus se o ffmpeg estiver instalado) entram na memória daquele perfil. O microfone nasce desligado.
+
 ## Privacidade e memória
 
-O runtime não contém cliente HTTP nem telemetria. Consulta somente nome do processo, ociosidade, cursor e geometria de janelas. Não solicita títulos ou conteúdo de janelas. A combinação do atalho de pânico é consultada sem gravar histórico de teclas. A inferência de digitação usa ociosidade e movimento do cursor; não captura texto.
+Sem o DeepSeek na NVIDIA, o runtime não fala com a internet e não tem telemetria. Consulta somente nome do processo, ociosidade, cursor e geometria de janelas. Não solicita títulos ou conteúdo de janelas. A combinação do atalho de pânico é consultada sem gravar histórico de teclas. A inferência de digitação usa ociosidade e movimento do cursor; não captura texto. O pânico também corta a conversa, o microfone e a voz.
 
 Dados ficam em `%LOCALAPPDATA%/MyDigitalBuddy` no Windows, `~/Library/Application Support/MyDigitalBuddy` no macOS, e `$XDG_DATA_HOME/mydigitalbuddy` ou `~/.local/share/mydigitalbuddy` no Linux. Use `--data-dir` ou `MYDIGITALBUDDY_DATA_DIR` para escolher outra pasta.
 
