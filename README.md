@@ -55,7 +55,7 @@ cargo run --release --locked
 
 No Linux, prefira uma sessão **X11**. Em Wayland, sensores e posicionamento de janelas podem ser limitados pelo compositor. XWayland pode permitir parte dessas funções. OpenGL é usado apenas para desenhar a interface.
 
-O binário fica em `target/release/mydigitalbuddy` ou `mydigitalbuddy.exe`. As definições básicas são embutidas. Pastas `pets/` e `assets/` ao lado do binário são opcionais para personalização. O workflow de CI prepara pacotes por sistema após os testes.
+O binário fica em `target/release/mydigitalbuddy` ou `mydigitalbuddy.exe`. As definições básicas são embutidas. Pastas `pets/` e `assets/` ao lado do binário são opcionais para personalização. Cada push e cada pull request na `master` compilam e testam com Cargo. Uma tag `v*` gera o pacote de cada sistema e a proveniência SLSA3 desse pacote.
 
 ## Usar
 
