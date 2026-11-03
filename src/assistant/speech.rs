@@ -501,10 +501,13 @@ fn play_command(program: &str, path: &Path) -> Result<(), String> {
         .stdout(Stdio::null())
         .stderr(Stdio::null());
     hide_console(&mut command);
-    command
+    let mut child = command
         .spawn()
-        .map(|_| ())
-        .map_err(|_| "não foi possível tocar o áudio".to_string())
+        .map_err(|_| "não foi possível tocar o áudio".to_string())?;
+    child
+        .wait()
+        .map_err(|_| "não foi possível tocar o áudio".to_string())?;
+    Ok(())
 }
 
 #[cfg(windows)]
