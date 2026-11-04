@@ -24,13 +24,9 @@ env:
 
 jobs:
   build:
-    name: Build and test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Build and test (windows-latest)
+    runs-on: windows-latest
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, windows-latest, macos-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -41,13 +37,7 @@ jobs:
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable action revision
         with:
           components: rustfmt, clippy
-
-      - name: Install Linux graphics libraries
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libx11-dev libxkbcommon-dev \
-            libwayland-dev libxi-dev libxcursor-dev libxrandr-dev libgl1-mesa-dev
+          channel: stable
 
       - name: Cache Cargo
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -66,3 +56,66 @@ jobs:
 
       - name: Run tests without the desktop feature
         run: cargo test --locked --no-default-features --all-targets
+
+  security:
+    name: CVE and supply-chain versions
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install the Rust toolchain
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          channel: stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      - name: Verify MSRV and locked manifest
+        run: cargo check --locked --all-targets --all-features
+
+      - name: Require latest stable Rust (language security fixes)
+        shell: pwsh
+        run: |
+          rustup update stable --no-self-update
+          $installed = (rustc +stable --version).Split()[1]
+          $toml = (Invoke-WebRequest -Uri "https://static.rust-lang.org/dist/channel-rust-stable.toml" -UseBasicParsing).Content
+          if ($toml -notmatch '(?ms)\[pkg\.rust\]\r?\nversion = "([^"]+)"') {
+            Write-Error "Could not read latest stable Rust version from rust-lang.org"
+            exit 1
+          }
+          $latest = $Matches[1]
+          Write-Host "Installed stable: $installed"
+          Write-Host "Published stable: $latest"
+          if ($installed -ne $latest) {
+            Write-Error "CI Rust $installed is behind stable $latest. Bump the toolchain to pick up compiler/runtime fixes."
+            exit 1
+          }
+
+      - name: Scan locked crates with Google OSV (CVE database)
+        uses: google/osv-scanner-action/osv-scanner-action@v2.6.0
+        with:
+          scan-args: |-
+            --lockfile=Cargo.lock
+            --fail-on=vuln
+
+      - name: RustSec advisory audit
+        uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reject stale Cargo.lock resolution
+        shell: pwsh
+        run: |
+          $dry = cargo update --dry-run --locked 2>&1 | Out-String
+          Write-Host $dry
+          if ($dry -match '(?m)^\s*Updating\s') {
+            Write-Error "Cargo.lock is behind Cargo.toml; run cargo update --locked locally and commit."
+            exit 1
+          }

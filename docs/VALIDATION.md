@@ -42,7 +42,7 @@ Essa sessão não mede DPI, múltiplos monitores, transparência final, atalho g
 
 ## Limites desta evidência
 
-macOS **não foi executado nativamente neste host**. No Windows, a sessão acima confirma link e abertura das janelas; não cobre foco, permissões do sistema, atalho, escala/DPI ou todos os gestos. `cargo check` continua sem substituir essa execução. O workflow repete build e testes em runners nativos quando o repositório estiver publicado; os resultados remotos só podem ser declarados depois da execução.
+macOS **não foi executado nativamente neste host**. No Windows, a sessão acima confirma link e abertura das janelas; não cobre foco, permissões do sistema, atalho, escala/DPI ou todos os gestos. `cargo check` continua sem substituir essa execução. O workflow remoto compila e testa no runner Windows; Linux e macOS não entram mais nesse gate. Os resultados remotos só podem ser declarados depois da execução.
 
 Não há comprovação de paridade global ou pixel a pixel com todos os caminhos do legado. A central pode ir para a bandeja e há diferenças de RNG e de mídia descritas em `MIGRATION.md`. Recomenda-se aceite de gestos, fullscreen, múltiplos monitores, hotkey e importação com uma cópia dos dados no sistema de destino.
 

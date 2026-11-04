@@ -20,6 +20,8 @@ Reversa 1.3.6 foi instalado com a API Writer oficial, a partir do checkout ident
 | ui/ | desktop.rs | Onboarding, central, permissões, monitor e painel |
 | ferramentas de docs/PyInstaller | Markdown e Cargo/CI | Ferramentas legadas substituídas |
 
+O workflow Rust no GitHub Actions compila e testa só em `windows-latest`. Linux e macOS saíram do CI de build. Um job paralelo aplica OSV (Google), `cargo audit` via RustSec, exige o stable Rust publicado e recusa `Cargo.lock` desatualizado.
+
 ## Diferenças declaradas
 
 - **RNG:** SplitMix64 + Box-Muller substitui NumPy PCG64. Mesma seed não cria os mesmos pesos aleatórios. Os oráculos neurais usam pesos e draws fixos do original para verificar as equações separadamente.
