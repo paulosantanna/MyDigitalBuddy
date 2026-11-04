@@ -522,7 +522,11 @@ fn record_windows(stop: Arc<AtomicBool>) -> Result<Vec<u8>, String> {
     };
     use windows_sys::Win32::Media::MM_WIM_DATA;
 
-    const MAX_PCM: usize = 16_000 * 2 * 60;
+    // Hold-to-talk records for as long as the button is held. The loop and the
+    // buffer share one generous ceiling so a long turn is captured whole instead
+    // of being silently truncated at one minute.
+    const MAX_SECONDS: u64 = 600;
+    const MAX_PCM: usize = 16_000 * 2 * MAX_SECONDS as usize;
 
     struct Shared {
         samples: Mutex<Vec<u8>>,
@@ -617,7 +621,7 @@ fn record_windows(stop: Arc<AtomicBool>) -> Result<Vec<u8>, String> {
         waveInStart(handle);
     }
     let started = Instant::now();
-    while !stop.load(Ordering::Relaxed) && started.elapsed() < Duration::from_secs(60) {
+    while !stop.load(Ordering::Relaxed) && started.elapsed() < Duration::from_secs(MAX_SECONDS) {
         thread::sleep(Duration::from_millis(40));
     }
     unsafe {
