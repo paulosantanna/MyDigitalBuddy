@@ -18,7 +18,7 @@ serde_json = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 eframe = { version = "0.37", optional = true, default-features = false, features = ["glow", "default_fonts", "x11", "wayland"] }
 image = { version = "0.25", optional = true, default-features = false, features = ["png", "jpeg", "webp", "gif", "bmp"] }
-lopdf = { version = "0.34", optional = true }
+lopdf = { version = "0.46", optional = true }
 symphonia = { version = "0.5", optional = true, default-features = false, features = ["aac", "flac", "isomp4", "mp3", "ogg", "pcm", "vorbis", "wav"] }
 ureq = { version = "3", optional = true, default-features = false, features = ["json", "rustls"] }
 
