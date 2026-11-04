@@ -59,7 +59,7 @@ jobs:
 
   security:
     name: CVE and supply-chain versions
-    runs-on: windows-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -74,6 +74,12 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Install Linux graphics libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libx11-dev libxkbcommon-dev \
+            libwayland-dev libxi-dev libxcursor-dev libxrandr-dev libgl1-mesa-dev
+
       - name: Cache Cargo
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
@@ -81,23 +87,22 @@ jobs:
         run: cargo check --locked --all-targets --all-features
 
       - name: Require current stable Rust (language security fixes)
-        shell: pwsh
         run: |
           rustup update stable --no-self-update
           rustc --version
-          $check = rustup check 2>&1 | Out-String
-          Write-Host $check
-          if ($check -match 'Update available') {
-            Write-Error "Stable Rust is not current after rustup update stable."
+          if rustup check 2>&1 | grep -q 'Update available'; then
+            echo "Stable Rust is not current after rustup update stable."
             exit 1
-          }
+          fi
 
       - name: Scan locked crates with Google OSV (CVE database)
         uses: google/osv-scanner-action/osv-scanner-action@v2.6.0
         with:
           scan-args: |-
-            --lockfile=Cargo.lock
-            --fail-on=vuln
+            scan source
+            -L Cargo.lock
+            --format vertical
+            --verbosity error
 
       - name: RustSec advisory audit
         uses: rustsec/audit-check@v2.0.0
@@ -105,11 +110,10 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Reject stale Cargo.lock resolution
-        shell: pwsh
         run: |
-          $dry = cargo update --dry-run --locked 2>&1 | Out-String
-          Write-Host $dry
-          if ($dry -match '(?m)^\s*Updating\s') {
-            Write-Error "Cargo.lock is behind Cargo.toml; run cargo update --locked locally and commit."
+          dry=$(cargo update --dry-run --locked 2>&1)
+          echo "$dry"
+          if echo "$dry" | grep -qE '^[[:space:]]*Updating[[:space:]]'; then
+            echo "Cargo.lock is behind Cargo.toml; run cargo update --locked locally and commit."
             exit 1
-          }
+          fi
