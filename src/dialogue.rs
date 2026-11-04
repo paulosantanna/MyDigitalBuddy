@@ -1427,6 +1427,103 @@ fn collapse_spaces(text: &str) -> String {
     collapsed.trim().to_string()
 }
 
+/// A piece of a chat line: plain text or a link the person may open.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Segment {
+    Text(String),
+    Link(String),
+}
+
+/// Split a message into text and link runs, so the chat can show clickable
+/// links without changing what is stored or sent to a model. The link opens in
+/// the person's own browser or player; nothing is fetched or embedded here.
+pub fn link_segments(text: &str) -> Vec<Segment> {
+    let chars: Vec<char> = text.chars().collect();
+    let mut out: Vec<Segment> = Vec::new();
+    let mut text_start = 0usize;
+    let mut index = 0usize;
+    while index < chars.len() {
+        if let Some(end) = link_at(&chars, index) {
+            if text_start < index {
+                push_text(&mut out, &chars[text_start..index]);
+            }
+            let link: String = chars[index..end].iter().collect();
+            out.push(Segment::Link(link));
+            text_start = end;
+            index = end;
+        } else {
+            index += 1;
+        }
+    }
+    if text_start < chars.len() {
+        push_text(&mut out, &chars[text_start..]);
+    }
+    out
+}
+
+fn push_text(out: &mut Vec<Segment>, chars: &[char]) {
+    let text: String = chars.iter().collect();
+    if !text.is_empty() {
+        out.push(Segment::Text(text));
+    }
+}
+
+/// If a link starts at `index`, return where it ends. Only `http://`,
+/// `https://` and `www.` runs count, and trailing punctuation is left out so a
+/// link at the end of a sentence still opens.
+fn link_at(chars: &[char], index: usize) -> Option<usize> {
+    // A link must start a run, not be glued to the tail of a word.
+    if index > 0 && (chars[index - 1].is_alphanumeric() || matches!(chars[index - 1], '@' | '.')) {
+        return None;
+    }
+    let rest: String = chars[index..].iter().collect();
+    let lower = rest.to_ascii_lowercase();
+    if !(lower.starts_with("http://") || lower.starts_with("https://") || lower.starts_with("www."))
+    {
+        return None;
+    }
+    let mut end = index;
+    while end < chars.len() && is_link_char(chars[end]) {
+        end += 1;
+    }
+    // Drop trailing punctuation, and an unbalanced closing bracket.
+    while end > index {
+        let last = chars[end - 1];
+        let punctuation = matches!(last, '.' | ',' | ';' | ':' | '!' | '?' | '\'' | '"' | '>');
+        let opens = chars[index..end].iter().filter(|&&c| c == '(').count();
+        let closes = chars[index..end].iter().filter(|&&c| c == ')').count();
+        let dangling_close = last == ')' && closes > opens;
+        if punctuation || dangling_close {
+            end -= 1;
+        } else {
+            break;
+        }
+    }
+    // Need at least one character past the scheme or www. prefix.
+    let prefix = if lower.starts_with("http://") {
+        7
+    } else if lower.starts_with("https://") {
+        8
+    } else {
+        4
+    };
+    (end > index + prefix).then_some(end)
+}
+
+fn is_link_char(ch: char) -> bool {
+    !ch.is_whitespace() && !ch.is_control() && !matches!(ch, '<' | '>' | '"' | '\\' | '`')
+}
+
+/// The address to hand the browser or player. `www.` links get an `https://`.
+pub fn link_href(link: &str) -> String {
+    let lower = link.to_ascii_lowercase();
+    if lower.starts_with("http://") || lower.starts_with("https://") {
+        link.to_string()
+    } else {
+        format!("https://{link}")
+    }
+}
+
 pub fn bubble_text(text: &str) -> String {
     let trimmed = clean_text(text).trim().to_string();
     if trimmed.chars().count() <= 320 {
@@ -2072,5 +2169,51 @@ nvapi-chave_falsa-0002
         let (line, gesture) = reply_line("São 10:30.");
         assert_eq!(line, "São 10:30.");
         assert_eq!(gesture, None);
+    }
+
+    #[test]
+    fn chat_links_become_their_own_segments() {
+        use Segment::{Link, Text};
+        assert_eq!(
+            link_segments("veja https://youtu.be/dQw4 agora"),
+            vec![
+                Text("veja ".into()),
+                Link("https://youtu.be/dQw4".into()),
+                Text(" agora".into()),
+            ]
+        );
+        // Trailing punctuation stays out of the link, so it still opens, but
+        // the period is still shown as text.
+        assert_eq!(
+            link_segments("ouça em www.exemplo.com.br."),
+            vec![
+                Text("ouça em ".into()),
+                Link("www.exemplo.com.br".into()),
+                Text(".".into()),
+            ]
+        );
+        // A balanced bracket pair is kept; a lone closer is dropped.
+        assert_eq!(
+            link_segments("(http://a.b/x(y)z)"),
+            vec![
+                Text("(".into()),
+                Link("http://a.b/x(y)z".into()),
+                Text(")".into())
+            ]
+        );
+        // Plain text and bare words are never links.
+        assert_eq!(
+            link_segments("sem link aqui"),
+            vec![Text("sem link aqui".into())]
+        );
+        assert_eq!(link_segments("http://"), vec![Text("http://".into())]);
+        // www. links get https, full links are left alone.
+        assert_eq!(link_href("www.exemplo.com"), "https://www.exemplo.com");
+        assert_eq!(link_href("http://exemplo.com/a"), "http://exemplo.com/a");
+        // An address glued to a word is not treated as a link.
+        assert_eq!(
+            link_segments("emailhttp://x.com"),
+            vec![Text("emailhttp://x.com".into())]
+        );
     }
 }

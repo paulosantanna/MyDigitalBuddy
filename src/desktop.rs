@@ -711,7 +711,7 @@ impl Desktop {
                         Role::Assistant => (self.engine.pet.name.as_str(), ACCENT),
                     };
                     ui.colored_label(color, who);
-                    ui.label(&turn.text);
+                    message_body(ui, &turn.text);
                     ui.add_space(4.0);
                 }
             });
@@ -2026,6 +2026,34 @@ fn bar(ui: &mut egui::Ui, label: &str, value: f64, color: Color32) {
         );
     });
 }
+/// Draw a chat line with any link made clickable. A click opens the address in
+/// the person's own browser or media player; the app does not fetch or embed
+/// the page, video or song. Non-link text is shown as usual.
+fn message_body(ui: &mut egui::Ui, text: &str) {
+    let segments = dialogue::link_segments(text);
+    if segments
+        .iter()
+        .all(|s| matches!(s, dialogue::Segment::Text(_)))
+    {
+        ui.label(text);
+        return;
+    }
+    ui.horizontal_wrapped(|ui| {
+        ui.spacing_mut().item_spacing.x = 0.0;
+        for segment in &segments {
+            match segment {
+                dialogue::Segment::Text(part) => {
+                    ui.label(part);
+                }
+                dialogue::Segment::Link(link) => {
+                    ui.hyperlink_to(link, dialogue::link_href(link))
+                        .on_hover_text("Abrir no navegador ou player");
+                }
+            }
+        }
+    });
+}
+
 fn load_image(path: &std::path::Path) -> Result<egui::ColorImage, Box<dyn std::error::Error>> {
     if std::fs::metadata(path)?.len() > 20 * 1024 * 1024 {
         return Err("Image exceeds 20 MiB".into());
